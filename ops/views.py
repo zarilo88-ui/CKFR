@@ -1,21 +1,17 @@
 """Views for the operations module."""
 
-from collections import defaultdict, OrderedDict
-
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from .forms import RoleSlotForm, ShipRoleTemplateForm
 from .models import RoleSlot, Ship
-
-STATUS_BADGES = {
-    "open": "bg-white/10 text-white/60 border border-white/20",
-    "assigned": "bg-amber-500/20 text-amber-200 border border-amber-500/40",
-    "confirmed": "bg-emerald-500/20 text-emerald-200 border border-emerald-500/40",
-}
+from .services import (
+    group_ships_by_category,
+    prepare_ship_for_display,
+    ships_with_slots,
+)
 
 
 def is_planner(user):
@@ -28,7 +24,12 @@ def is_planner(user):
 @login_required
 def ships_list(request):
     """Display the list of ships, optionally filtered by category."""
+
     category = request.GET.get("cat")
+    valid_categories = {code for code, _ in Ship.CATEGORY_CHOICES}
+    if category not in valid_categories:
+        category = None
+
     queryset = Ship.objects.all()
     if category:
         queryset = queryset.filter(category=category)
@@ -48,41 +49,16 @@ def ships_list(request):
 @login_required
 def ships_allocation(request):
     """Show all ships with their crew allocations."""
-    ships = list(
-        Ship.objects.prefetch_related(
-            Prefetch(
-                "role_slots",
-                queryset=RoleSlot.objects.select_related("user").order_by(
-                    "role_name", "index"
-                ),
-            )
-        ).order_by("category", "name")
-    )
 
     can_edit = is_planner(request.user)
     user_queryset = RoleSlotForm.default_user_queryset() if can_edit else None
 
-    categories = OrderedDict(Ship.CATEGORY_CHOICES)
-    categorized_ships = {code: [] for code in categories}
-
-    for ship in ships:
-        grouped_slots = OrderedDict()
-        for slot in ship.role_slots.all():
-            if can_edit:
-                slot.form = RoleSlotForm(
-                    instance=slot,
-                    user_queryset=user_queryset,
-                )
-            slot.badge_class = STATUS_BADGES.get(slot.status, STATUS_BADGES["open"])
-            grouped_slots.setdefault(slot.role_name, []).append(slot)
-        ship.grouped_slots = list(grouped_slots.items())
-        categorized_ships[ship.category].append(ship)
-
-    grouped_ships = [
-        (label, categorized_ships[code])
-        for code, label in categories.items()
-        if categorized_ships[code]
+    prepared_ships = [
+        prepare_ship_for_display(ship, can_edit=can_edit, user_queryset=user_queryset)
+        for ship in ships_with_slots().order_by("category", "name")
     ]
+
+    grouped_ships = group_ships_by_category(prepared_ships)
 
     return render(
         request,
@@ -97,19 +73,16 @@ def ships_allocation(request):
 @login_required
 def ship_detail(request, pk):
     """Display the details of a single ship and manage its role templates."""
-    ship = get_object_or_404(Ship, pk=pk)
+    ship = get_object_or_404(ships_with_slots(), pk=pk)
     can_edit = is_planner(request.user)
     user_queryset = RoleSlotForm.default_user_queryset() if can_edit else None
 
-    slots_by_role = defaultdict(list)
-    for slot in ship.role_slots.select_related("user").order_by("role_name", "index"):
-        if can_edit:
-            slot.form = RoleSlotForm(
-                instance=slot,
-                user_queryset=user_queryset,
-            )
-        slot.badge_class = STATUS_BADGES.get(slot.status, STATUS_BADGES["open"])
-        slots_by_role[slot.role_name].append(slot)
+    ship = prepare_ship_for_display(
+        ship,
+        can_edit=can_edit,
+        user_queryset=user_queryset,
+    )
+    slots_by_role = ship.slots_by_role
 
     role_form = ShipRoleTemplateForm()
 
@@ -127,7 +100,7 @@ def ship_detail(request, pk):
         "ops/ship_detail.html",
         {
             "ship": ship,
-            "slots_by_role": dict(slots_by_role),
+            "slots_by_role": slots_by_role,
             "role_form": role_form,
             "can_edit": can_edit,
         },
@@ -153,6 +126,3 @@ def role_slot_update(request, pk):
         if next_url and url_has_allowed_host_and_scheme(
             next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
         ):
-            return redirect(next_url)
-
-    return redirect("ship_detail", pk=slot.ship_id)
