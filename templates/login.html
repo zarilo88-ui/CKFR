@@ -1,16 +1,16 @@
-cat > templates/login.html << 'EOF'
 {% extends "base.html" %}
 {% block title %}Connexion · C.K.F.R{% endblock %}
 {% block body %}
 <div class="min-h-screen flex items-center justify-center p-4">
   <div class="w-full max-w-md">
     <div class="bg-white/10 backdrop-blur rounded-2xl shadow-xl p-6 sm:p-8 border border-white/10">
-      <div class="mb-6 text-center">
-        <div class="mx-auto h-12 w-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
-          <span class="text-indigo-300 font-bold text-xl">C.K.</span>
+      <div class="mb-6 text-center space-y-3">
+        <!-- Badge that fits the whole name -->
+        <div class="inline-flex items-center justify-center px-4 h-10 rounded-full bg-indigo-500/20 border border-indigo-400/20">
+          <span class="text-indigo-300 font-semibold text-base sm:text-lg whitespace-nowrap tracking-wide">C.K.F.R</span>
         </div>
-        <h1 class="mt-4 text-2xl sm:text-3xl font-semibold text-white">C.K.F.R — Connexion</h1>
-        <p class="mt-1 text-sm text-slate-300">Accès privé réservé aux membres</p>
+        <h1 class="text-2xl sm:text-3xl font-semibold text-white">C.K.F.R — Connexion</h1>
+        <p class="text-sm text-slate-300">Accès privé réservé aux membres</p>
       </div>
 
       {% if form.errors %}
