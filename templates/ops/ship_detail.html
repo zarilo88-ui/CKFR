@@ -1,48 +1,74 @@
-@@ -15,45 +15,45 @@
-  </div>
+{% extends "base.html" %}
+{% block title %}{{ ship.name }} · C.K.F.R{% endblock %}
+{% block body %}
+<section class="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+  <header class="space-y-2">
+    <p class="text-sm uppercase tracking-[0.3em] text-white/50">Fiche vaisseau</p>
+    <h1 class="text-3xl font-semibold">{{ ship.name }}</h1>
+    <p class="text-white/60 text-sm">
+      Catégorie : {{ ship.get_category_display }} · Équipage {{ ship.min_crew }}–{{ ship.max_crew }} pilotes
+    </p>
+  </header>
 
   {% if can_edit %}
-  <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-    <h2 class="font-medium mb-3">Add role template</h2>
-    <form method="post" class="grid sm:grid-cols-3 gap-3">
+  <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+    <h2 class="font-medium">Ajouter un rôle</h2>
+    <form method="post" class="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
       {% csrf_token %}
-      {{ role_form.role_name }}
-      {{ role_form.slots }}
-      <button class="rounded border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] px-3 py-2">Add</button>
+      <div class="sm:col-span-1">{{ role_form.role_name }}</div>
+      <div class="sm:col-span-1">{{ role_form.slots }}</div>
+      <button class="rounded border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] px-3 py-2">Ajouter</button>
     </form>
-    <p class="text-xs text-white/50 mt-2">Missing slots are created automatically.</p>
+    <p class="text-xs text-white/50">Les places manquantes sont créées automatiquement.</p>
   </div>
   {% endif %}
 
   {% for role, slots in slots_by_role.items %}
-  <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-    <div class="font-medium mb-3">{{ role }}</div>
-    <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-      {% for s in slots %}
-      <form method="post" action="{% url 'role_slot_update' s.pk %}" class="rounded-xl bg-white/5 border border-white/10 p-3">
-        {% csrf_token %}
-        <div class="text-xs text-white/60 mb-2">Slot #{{ s.index }}</div>
-        <select name="user" class="w-full bg-black/40 border border-white/15 rounded px-2 py-1 mb-2">
-          <option value="">— free —</option>
-          {% for u in request.user.__class__.objects.all %}
-          <option value="{{ u.id }}" {% if s.user_id == u.id %}selected{% endif %}>{{ u.username }}</option>
-          {% for u in all_users %}
-          <option value="{{ u.pk }}" {% if s.user_id == u.pk %}selected{% endif %}>{{ u.get_username }}</option>
-          {% endfor %}
-        </select>
-        <select name="status" class="w-full bg-black/40 border border-white/15 rounded px-2 py-1 mb-3">
-          <option value="open" {% if s.status == 'open' %}selected{% endif %}>Free</option>
-          <option value="assigned" {% if s.status == 'assigned' %}selected{% endif %}>Assigned</option>
-          <option value="confirmed" {% if s.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
-        </select>
-        <button class="w-full rounded border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] px-3 py-1.5">Save</button>
-      </form>
+  <section class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-4">
+    <h2 class="font-medium">{{ role }}</h2>
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {% for slot in slots %}
+      <div class="rounded-xl bg-white/5 border border-white/10 p-4 space-y-3">
+        <div class="flex items-center justify-between text-sm text-white/60">
+          <span>Place n°{{ slot.index }}</span>
+          <span class="uppercase tracking-[0.2em] text-xs px-2 py-1 rounded-full {{ slot.badge_class }}">
+            {{ slot.get_status_display }}
+          </span>
+        </div>
+        {% if can_edit %}
+        <form method="post" action="{% url 'role_slot_update' slot.pk %}" class="space-y-3">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'ship_detail' ship.pk %}" />
+          <label class="block text-sm space-y-1">
+            <span class="text-white/50">Utilisateur</span>
+            {{ slot.form.user }}
+          </label>
+          <label class="block text-sm space-y-1">
+            <span class="text-white/50">Statut</span>
+            {{ slot.form.status }}
+          </label>
+          <div class="flex justify-end">
+            <button type="submit" class="rounded border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] px-3 py-1.5 text-sm">
+              Mettre à jour
+            </button>
+          </div>
+        </form>
+        {% else %}
+        <p class="text-sm text-white/70">
+          {% if slot.user %}
+          Assigné à <span class="font-medium text-white">{{ slot.user.get_username }}</span>
+          {% else %}
+          Aucune affectation pour le moment.
+          {% endif %}
+        </p>
+        {% endif %}
+      </div>
       {% endfor %}
     </div>
-  </div>
+  </section>
   {% empty %}
-  <p class="text-white/60">No roles defined for this ship.</p>
+  <p class="text-white/60">Aucun rôle n'est encore défini pour ce vaisseau.</p>
   {% endfor %}
-
 </section>
 {% endblock %}
+

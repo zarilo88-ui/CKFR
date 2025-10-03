@@ -11,7 +11,12 @@ class Ship(models.Model):
         ("MR", "Multirôle"),
         ("CAP", "Capital"),
     ]
-    category = models.CharField("Catégorie", max_length=3, choices=CATEGORY_CHOICES, default="MR")
+    category = models.CharField(
+        "Catégorie",
+        max_length=3,
+        choices=CATEGORY_CHOICES,
+        default="MR",
+    )
     min_crew = models.PositiveSmallIntegerField("Équipage minimum", default=1)
     max_crew = models.PositiveSmallIntegerField("Équipage maximum")
 
@@ -43,6 +48,12 @@ class ShipRoleTemplate(models.Model):
 
 
 class RoleSlot(models.Model):
+    STATUS_CHOICES = [
+        ("open", "Libre"),
+        ("assigned", "Assigné"),
+        ("confirmed", "Confirmé"),
+    ]
+
     ship = models.ForeignKey(
         Ship,
         on_delete=models.CASCADE,
@@ -59,16 +70,7 @@ class RoleSlot(models.Model):
         related_name="role_slots",
         verbose_name="Utilisateur",
     )
-    status = models.CharField(
-        "Statut",
-        max_length=16,
-        default="open",
-        choices=[
-            ("open", "Libre"),
-            ("assigned", "Assigné"),
-            ("confirmed", "Confirmé"),
-        ],
-    )
+    status = models.CharField("Statut", max_length=16, default="open", choices=STATUS_CHOICES)
 
     class Meta:
         unique_together = ("ship", "role_name", "index")

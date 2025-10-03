@@ -1,5 +1,7 @@
+import os
 from pathlib import Path
-import os, dj_database_url
+
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -33,8 +35,12 @@ CSRF_TRUSTED_ORIGINS = [
 
 INSTALLED_APPS = [
     "ckfr_site.apps.CkfrSiteConfig",
-    "django.contrib.admin","django.contrib.auth","django.contrib.contenttypes",
-    "django.contrib.sessions","django.contrib.messages","django.contrib.staticfiles",
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
     "ops",
 ]
 
@@ -51,17 +57,21 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "ckfr_site.urls"
 
-TEMPLATES = [{
-    "BACKEND":"django.template.backends.django.DjangoTemplates",
-    "DIRS":[BASE_DIR / "templates"],
-    "APP_DIRS":True,
-    "OPTIONS":{"context_processors":[
-        "django.template.context_processors.debug",
-        "django.template.context_processors.request",
-        "django.contrib.auth.context_processors.auth",
-        "django.contrib.messages.context_processors.messages",
-    ]},
-}]
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ]
+        },
+    }
+]
 
 WSGI_APPLICATION = "ckfr_site.wsgi.application"
 
@@ -76,7 +86,11 @@ DATABASES = {
 # Static files (WhiteNoise)
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STORAGES = {"staticfiles": {"BACKEND":"whitenoise.storage.CompressedManifestStaticFilesStorage"}}
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    }
+}
 
 # Auth redirects
 LOGIN_URL = "/"
@@ -92,8 +106,8 @@ CSRF_COOKIE_SECURE = not DEBUG
 
 # Strong password hashing
 PASSWORD_HASHERS = [
-  "django.contrib.auth.hashers.Argon2PasswordHasher",
-  "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
 ]
 
 # --- Locale (French) ---
