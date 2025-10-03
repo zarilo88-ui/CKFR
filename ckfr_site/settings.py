@@ -94,3 +94,9 @@ PASSWORD_HASHERS = [
   "django.contrib.auth.hashers.Argon2PasswordHasher",
   "django.contrib.auth.hashers.PBKDF2PasswordHasher",
 ]
+
+# --- Locale (French) ---
+LANGUAGE_CODE = "fr"
+TIME_ZONE = "Europe/Paris"
+USE_I18N = True
+USE_TZ = True
