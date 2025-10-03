@@ -35,23 +35,30 @@ class ShipRoleTemplate(models.Model):
         return f"{self.ship} · {self.role_name} ×{self.slots}"
 
 class RoleSlot(models.Model):
-    ship = models.ForeignKey(Ship, on_delete=models.CASCADE, related_name="role_slots", verbose_name="Vaisseau")
+    ship = models.ForeignKey(
+        Ship,
+        on_delete=models.CASCADE,
+        related_name="role_slots",
+        verbose_name="Vaisseau"
+    )
     role_name = models.CharField("Rôle", max_length=40)
     index = models.PositiveSmallIntegerField("N° de place", default=1)
-    from django.db.models import SET_NULL  # at top if you like, or use models.SET_NULL
-
-user = models.ForeignKey(
-    User,
-    on_delete=models.SET_NULL,   # <— allow deletion; slot becomes free
-    null=True,
-    blank=True,
-    verbose_name="Utilisateur",
-)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Utilisateur",
+    )
     status = models.CharField(
         "Statut",
         max_length=16,
         default="open",
-        choices=[("open", "Libre"), ("assigned", "Assigné"), ("confirmed", "Confirmé")],
+        choices=[
+            ("open", "Libre"),
+            ("assigned", "Assigné"),
+            ("confirmed", "Confirmé"),
+        ],
     )
 
     class Meta:
