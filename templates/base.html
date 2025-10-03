@@ -1,4 +1,4 @@
-<!doctype html>
+@@ -2,46 +2,47 @@
 <html lang="fr" class="h-full">
 <head>
   <meta charset="utf-8" />
@@ -15,8 +15,8 @@
 <body class="h-full bg-black text-white">
   <div class="noise"></div>
 
-  {% if user.is_authenticated and request.resolver_match.url_name != 'login' %}
-  <!-- Header (visible UNIQUEMENT hors page de login) -->
+  {% if user.is_authenticated %}
+  <!-- Header (visible UNIQUEMENT après connexion) -->
   <header class="border-b border-white/10 bg-black/60 backdrop-blur sticky top-0 z-40">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
       <a href="{% url 'ships_list' %}" class="flex items-center gap-8 group">
@@ -24,6 +24,7 @@
       </a>
       <nav class="flex items-center gap-8 text-sm">
         <a href="{% url 'ships_list' %}" class="text-white/80 hover:text-white">Vaisseaux</a>
+        <a href="{% url 'ships_allocation' %}" class="text-white/80 hover:text-white">Allocation</a>
         <a href="/admin/" class="text-white/60 hover:text-white/90">Admin</a>
         <a href="/logout/" class="rounded border border-white/20 px-3 py-1 hover:bg-white/10">Déconnexion</a>
       </nav>
@@ -35,7 +36,7 @@
     {% block body %}{% endblock %}
   </main>
 
-  {% if user.is_authenticated and request.resolver_match.url_name != 'login' %}
+  {% if user.is_authenticated %}
   <footer class="border-t border-white/10 text-xs text-white/50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between">
       <span>© C.K.F.R</span>

@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from django.core.exceptions import FieldDoesNotExist
 
@@ -10,6 +11,7 @@ class ShipRoleTemplateForm(forms.ModelForm):
         fields = ("role_name", "slots")
 
 class RoleSlotForm(forms.ModelForm):
+    user = forms.ModelChoiceField(label="Utilisateur", queryset=User.objects.order_by("username"), required=False)
     user = forms.ModelChoiceField(
         label="Utilisateur",
         queryset=get_user_model().objects.none(),

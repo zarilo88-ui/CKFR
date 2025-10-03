@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.contrib.auth.models import User
 
 class Ship(models.Model):
     name = models.CharField("Nom du vaisseau", max_length=80, unique=True)
@@ -44,6 +45,7 @@ class RoleSlot(models.Model):
     role_name = models.CharField("Rôle", max_length=40)
     index = models.PositiveSmallIntegerField("N° de place", default=1)
     user = models.ForeignKey(
+        User,
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
@@ -67,5 +69,6 @@ class RoleSlot(models.Model):
         verbose_name_plural = "Places de rôle"
 
     def __str__(self):
+        who = self.user.username if self.user else "libre"
         who = self.user.get_username() if self.user else "libre"
         return f"{self.ship} · {self.role_name} #{self.index} → {who}"
