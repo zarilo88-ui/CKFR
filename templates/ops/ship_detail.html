@@ -38,7 +38,11 @@
         <select name="user" class="w-full bg-black/40 border border-white/15 rounded px-2 py-1 mb-2">
           <option value="">— free —</option>
           {% for u in all_users %}
+<<<<<<< ours
           <option value="{{ u.id }}" {% if s.user_id == u.id %}selected{% endif %}>{{ u.username }}</option>
+=======
+          <option value="{{ u.pk }}" {% if s.user_id == u.pk %}selected{% endif %}>{{ u.get_username }}</option>
+>>>>>>> theirs
           {% endfor %}
         </select>
         <select name="status" class="w-full bg-black/40 border border-white/15 rounded px-2 py-1 mb-3">
