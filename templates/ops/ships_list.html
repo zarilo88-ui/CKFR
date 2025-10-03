@@ -1,16 +1,30 @@
 {% extends "base.html" %}
 {% block title %}Vaisseaux · C.K.F.R{% endblock %}
 {% block body %}
-<div class="max-w-4xl mx-auto p-4 sm:p-6">
-  <h1 class="text-2xl sm:text-3xl font-semibold mb-6">Vaisseaux</h1>
-  <div class="space-y-3">
+<div class="max-w-5xl mx-auto p-4 sm:p-6">
+  <h1 class="text-2xl sm:text-3xl font-semibold mb-4">Vaisseaux</h1>
+
+  <div class="flex flex-wrap gap-2 mb-6">
+    <a href="?" class="px-3 py-1.5 rounded-full border border-white/10 {{ not current_cat|yesno:',bg-white/20' }}">Tous</a>
+    {% for c,val in categories %}
+      <a href="?cat={{ c }}" class="px-3 py-1.5 rounded-full border border-white/10 {% if current_cat == c %}bg-white/20{% endif %}">
+        {{ val }}
+      </a>
+    {% endfor %}
+  </div>
+
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
     {% for ship in ships %}
       <a href="{% url 'ship_detail' ship.pk %}" class="block rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10">
         <div class="font-medium">{{ ship.name }}</div>
+        <div class="text-sm text-slate-300">
+          Catégorie :
+          {% if ship.category == 'LF' %}Chasseur léger{% elif ship.category == 'MF' %}Chasseur moyen{% elif ship.category == 'HF' %}Chasseur lourd{% elif ship.category == 'MR' %}Multirôle{% else %}Capital{% endif %}
+        </div>
         <div class="text-sm text-slate-300">Équipage {{ ship.min_crew }}–{{ ship.max_crew }}</div>
       </a>
     {% empty %}
-      <p class="text-slate-300">Aucun vaisseau pour l’instant.</p>
+      <p class="text-slate-300">Aucun vaisseau.</p>
     {% endfor %}
   </div>
 </div>

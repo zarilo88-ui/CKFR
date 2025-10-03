@@ -7,7 +7,8 @@ class ShipRoleTemplateInline(admin.TabularInline):
 
 @admin.register(Ship)
 class ShipAdmin(admin.ModelAdmin):
-    list_display = ("name", "min_crew", "max_crew")
+    list_display = ("name", "category", "min_crew", "max_crew")
+    list_filter = ("category",)
     search_fields = ("name",)
     inlines = [ShipRoleTemplateInline]
 

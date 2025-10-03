@@ -1,27 +1,35 @@
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
-from .models import Ship, ShipRoleTemplate, RoleSlot
-from .forms import RoleSlotForm, ShipForm, ShipRoleTemplateForm
+from .models import Ship, RoleSlot
+from .forms import RoleSlotForm, ShipRoleTemplateForm
 
 def is_planner(user):
-    # Adjust group names if you localized them; superuser bypasses
     return user.is_superuser or user.groups.filter(name__in=["Planner", "Administrateur", "Planificateur"]).exists()
 
 @login_required
 def ships_list(request):
-    ships = Ship.objects.order_by("name")
-    return render(request, "ops/ships_list.html", {"ships": ships})
+    cat = request.GET.get("cat")
+    qs = Ship.objects.all()
+    if cat:
+        qs = qs.filter(category=cat)
+    ships = qs.order_by("name")
+    categories = [
+        ("LF", "Chasseur léger"),
+        ("MF", "Chasseur moyen"),
+        ("HF", "Chasseur lourd"),
+        ("MR", "Multirôle"),
+        ("CAP", "Capital"),
+    ]
+    return render(request, "ops/ships_list.html", {"ships": ships, "categories": categories, "current_cat": cat})
 
 @login_required
 def ship_detail(request, pk):
     ship = get_object_or_404(Ship, pk=pk)
-    # Group slots by role name for display
     slots_by_role = {}
     for slot in ship.role_slots.select_related("user").order_by("role_name", "index"):
         slots_by_role.setdefault(slot.role_name, []).append(slot)
 
-    # Simple inline add-a-role-template form for planners/admins
     role_form = ShipRoleTemplateForm()
     can_edit = is_planner(request.user)
 
@@ -30,15 +38,12 @@ def ship_detail(request, pk):
         if role_form.is_valid():
             rt = role_form.save(commit=False)
             rt.ship = ship
-            rt.save()  # signals will create missing RoleSlot rows
+            rt.save()  # signals create missing RoleSlots
             messages.success(request, "Rôle ajouté au vaisseau.")
             return redirect("ship_detail", pk=ship.pk)
 
-    return render(
-        request,
-        "ops/ship_detail.html",
-        {"ship": ship, "slots_by_role": slots_by_role, "role_form": role_form, "can_edit": can_edit},
-    )
+    return render(request, "ops/ship_detail.html",
+                  {"ship": ship, "slots_by_role": slots_by_role, "role_form": role_form, "can_edit": can_edit})
 
 @login_required
 @user_passes_test(is_planner)

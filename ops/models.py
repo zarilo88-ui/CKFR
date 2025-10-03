@@ -3,6 +3,14 @@ from django.contrib.auth.models import User
 
 class Ship(models.Model):
     name = models.CharField("Nom du vaisseau", max_length=80, unique=True)
+    CATEGORY_CHOICES = [
+        ("LF", "Chasseur léger"),
+        ("MF", "Chasseur moyen"),
+        ("HF", "Chasseur lourd"),
+        ("MR", "Multirôle"),
+        ("CAP", "Capital"),
+    ]
+    category = models.CharField("Catégorie", max_length=3, choices=CATEGORY_CHOICES, default="MR")
     min_crew = models.PositiveSmallIntegerField("Équipage minimum", default=1)
     max_crew = models.PositiveSmallIntegerField("Équipage maximum")
 
@@ -27,13 +35,9 @@ class ShipRoleTemplate(models.Model):
         return f"{self.ship} · {self.role_name} ×{self.slots}"
 
 class RoleSlot(models.Model):
-    """
-    A concrete slot for a given role on a ship.
-    Example: Cutlass Black · Gunner · slot #1 assigned to user X.
-    """
     ship = models.ForeignKey(Ship, on_delete=models.CASCADE, related_name="role_slots", verbose_name="Vaisseau")
     role_name = models.CharField("Rôle", max_length=40)
-    index = models.PositiveSmallIntegerField("N° de place", default=1)  # 1..N within the role
+    index = models.PositiveSmallIntegerField("N° de place", default=1)
     user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, verbose_name="Utilisateur")
     status = models.CharField(
         "Statut",
