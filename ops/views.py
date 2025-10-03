@@ -1,4 +1,5 @@
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
 from .models import Ship, RoleSlot
@@ -42,8 +43,19 @@ def ship_detail(request, pk):
             messages.success(request, "Rôle ajouté au vaisseau.")
             return redirect("ship_detail", pk=ship.pk)
 
-    return render(request, "ops/ship_detail.html",
-                  {"ship": ship, "slots_by_role": slots_by_role, "role_form": role_form, "can_edit": can_edit})
+    users = get_user_model().objects.order_by("username") if can_edit else []
+
+    return render(
+        request,
+        "ops/ship_detail.html",
+        {
+            "ship": ship,
+            "slots_by_role": slots_by_role,
+            "role_form": role_form,
+            "can_edit": can_edit,
+            "all_users": users,
+        },
+    )
 
 @login_required
 @user_passes_test(is_planner)
