@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Nouvelle opération · C.K.F.R{% endblock %}
+{% block body %}
+<div class="max-w-xl mx-auto p-4 sm:p-6">
+  <h1 class="text-2xl sm:text-3xl font-semibold mb-4">Nouvelle opération</h1>
+  <form method="post" class="space-y-4">{% csrf_token %}
+    {{ form.as_p }}
+    <button class="rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2">Enregistrer</button>
+  </form>
+</div>
+{% endblock %}

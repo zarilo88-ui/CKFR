@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Opérations · C.K.F.R{% endblock %}
+{% block body %}
+<div class="max-w-4xl mx-auto p-4 sm:p-6">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl sm:text-3xl font-semibold">Opérations</h1>
+    <a href="{% url 'operation_create' %}" class="rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2">Créer</a>
+  </div>
+  <div class="space-y-3">
+    {% for op in ops %}
+      <a href="{% url 'operation_detail' op.pk %}" class="block rounded-xl border border-white/10 bg-white/5 p-4 hover:bg-white/10">
+        <div class="font-medium">{{ op.title }}</div>
+        <div class="text-sm text-slate-300">{{ op.start|date:"d/m/Y H:i" }}</div>
+      </a>
+    {% empty %}
+      <p class="text-slate-300">Aucune opération pour l’instant.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
