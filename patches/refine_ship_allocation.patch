@@ -1,0 +1,976 @@
+From 9fda9ede03093b6a3edcdd99a107999b3c594333 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 3 Oct 2025 18:01:18 +0000
+Subject: [PATCH] Refine ship allocation flows and polish UI
+
+## Summary
+- centralize ship allocation logic, reuse ordered user querysets, and add status styling helpers
+- refresh ship listing/detail templates and login/base layout for clearer UX
+- tidy Django settings and URL modules for readability
+
+## Testing
+- python manage.py test
+---
+ ckfr_site/apps.py                  |   2 +
+ ckfr_site/settings.py              |  48 ++++++----
+ ckfr_site/urls.py                  |   2 +-
+ ops/apps.py                        |   3 +
+ ops/forms.py                       |  59 +++++++++---
+ ops/models.py                      |  24 ++---
+ ops/tests.py                       |   1 -
+ ops/urls.py                        |   3 +-
+ ops/views.py                       | 146 +++++++++++++++++++---------
+ templates/base.html                |  20 ++--
+ templates/login.html               |  26 +++--
+ templates/ops/ship_allocation.html | 149 +++++++++++++++--------------
+ templates/ops/ship_detail.html     |  95 +++++++++++-------
+ templates/ops/ships_list.html      |  47 +++++----
+ 14 files changed, 396 insertions(+), 229 deletions(-)
+
+diff --git a/ckfr_site/apps.py b/ckfr_site/apps.py
+index d57713a..fbc6808 100644
+--- a/ckfr_site/apps.py
++++ b/ckfr_site/apps.py
+@@ -1,7 +1,9 @@
+ from django.apps import AppConfig
+ 
++
+ class CkfrSiteConfig(AppConfig):
+     default_auto_field = "django.db.models.AutoField"
+     name = "ckfr_site"
++
+     def ready(self):
+         from . import user_admin  # noqa
+diff --git a/ckfr_site/settings.py b/ckfr_site/settings.py
+index 95fad54..8b821e6 100644
+--- a/ckfr_site/settings.py
++++ b/ckfr_site/settings.py
+@@ -1,5 +1,7 @@
++import os
+ from pathlib import Path
+-import os, dj_database_url
++
++import dj_database_url
+ 
+ BASE_DIR = Path(__file__).resolve().parent.parent
+ 
+@@ -33,8 +35,12 @@ CSRF_TRUSTED_ORIGINS = [
+ 
+ INSTALLED_APPS = [
+     "ckfr_site.apps.CkfrSiteConfig",
+-    "django.contrib.admin","django.contrib.auth","django.contrib.contenttypes",
+-    "django.contrib.sessions","django.contrib.messages","django.contrib.staticfiles",
++    "django.contrib.admin",
++    "django.contrib.auth",
++    "django.contrib.contenttypes",
++    "django.contrib.sessions",
++    "django.contrib.messages",
++    "django.contrib.staticfiles",
+     "ops",
+ ]
+ 
+@@ -51,17 +57,21 @@ MIDDLEWARE = [
+ 
+ ROOT_URLCONF = "ckfr_site.urls"
+ 
+-TEMPLATES = [{
+-    "BACKEND":"django.template.backends.django.DjangoTemplates",
+-    "DIRS":[BASE_DIR / "templates"],
+-    "APP_DIRS":True,
+-    "OPTIONS":{"context_processors":[
+-        "django.template.context_processors.debug",
+-        "django.template.context_processors.request",
+-        "django.contrib.auth.context_processors.auth",
+-        "django.contrib.messages.context_processors.messages",
+-    ]},
+-}]
++TEMPLATES = [
++    {
++        "BACKEND": "django.template.backends.django.DjangoTemplates",
++        "DIRS": [BASE_DIR / "templates"],
++        "APP_DIRS": True,
++        "OPTIONS": {
++            "context_processors": [
++                "django.template.context_processors.debug",
++                "django.template.context_processors.request",
++                "django.contrib.auth.context_processors.auth",
++                "django.contrib.messages.context_processors.messages",
++            ]
++        },
++    }
++]
+ 
+ WSGI_APPLICATION = "ckfr_site.wsgi.application"
+ 
+@@ -76,7 +86,11 @@ DATABASES = {
+ # Static files (WhiteNoise)
+ STATIC_URL = "/static/"
+ STATIC_ROOT = BASE_DIR / "staticfiles"
+-STORAGES = {"staticfiles": {"BACKEND":"whitenoise.storage.CompressedManifestStaticFilesStorage"}}
++STORAGES = {
++    "staticfiles": {
++        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
++    }
++}
+ 
+ # Auth redirects
+ LOGIN_URL = "/"
+@@ -92,8 +106,8 @@ CSRF_COOKIE_SECURE = not DEBUG
+ 
+ # Strong password hashing
+ PASSWORD_HASHERS = [
+-  "django.contrib.auth.hashers.Argon2PasswordHasher",
+-  "django.contrib.auth.hashers.PBKDF2PasswordHasher",
++    "django.contrib.auth.hashers.Argon2PasswordHasher",
++    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+ ]
+ 
+ # --- Locale (French) ---
+diff --git a/ckfr_site/urls.py b/ckfr_site/urls.py
+index 1dacd59..14d156c 100644
+--- a/ckfr_site/urls.py
++++ b/ckfr_site/urls.py
+@@ -1,6 +1,6 @@
+ from django.contrib import admin
+-from django.urls import path, include
+ from django.contrib.auth import views as auth_views
++from django.urls import include, path
+ 
+ urlpatterns = [
+     path("", auth_views.LoginView.as_view(template_name="login.html"), name="login"),
+diff --git a/ops/apps.py b/ops/apps.py
+index e98af9c..db8882f 100644
+--- a/ops/apps.py
++++ b/ops/apps.py
+@@ -1,6 +1,9 @@
+ from django.apps import AppConfig
++
++
+ class OpsConfig(AppConfig):
+     default_auto_field = "django.db.models.AutoField"
+     name = "ops"
++
+     def ready(self):
+         from . import signals  # noqa
+diff --git a/ops/forms.py b/ops/forms.py
+index 2a0ccef..038ae11 100644
+--- a/ops/forms.py
++++ b/ops/forms.py
+@@ -1,17 +1,43 @@
+ from django import forms
+-from django.contrib.auth.models import User
+ from django.contrib.auth import get_user_model
+ from django.core.exceptions import FieldDoesNotExist
+ 
+-from .models import ShipRoleTemplate, RoleSlot
++from .models import RoleSlot, ShipRoleTemplate
++
++
++def _ordered_user_queryset():
++    """Return the list of users ordered by their username field."""
++
++    user_model = get_user_model()
++    order_field = getattr(user_model, "USERNAME_FIELD", "username")
++    try:
++        user_model._meta.get_field(order_field)
++    except FieldDoesNotExist:
++        order_field = "pk"
++    return user_model.objects.order_by(order_field)
++
+ 
+ class ShipRoleTemplateForm(forms.ModelForm):
+     class Meta:
+         model = ShipRoleTemplate
+         fields = ("role_name", "slots")
++        widgets = {
++            "role_name": forms.TextInput(
++                attrs={
++                    "class": "w-full rounded-xl border border-white/10 bg-white/5 text-white px-3 py-2",
++                    "placeholder": "Rôle",
++                }
++            ),
++            "slots": forms.NumberInput(
++                attrs={
++                    "class": "w-full rounded-xl border border-white/10 bg-white/5 text-white px-3 py-2",
++                    "min": 1,
++                }
++            ),
++        }
++
+ 
+ class RoleSlotForm(forms.ModelForm):
+-    user = forms.ModelChoiceField(label="Utilisateur", queryset=User.objects.order_by("username"), required=False)
+     user = forms.ModelChoiceField(
+         label="Utilisateur",
+         queryset=get_user_model().objects.none(),
+@@ -21,13 +47,24 @@ class RoleSlotForm(forms.ModelForm):
+     class Meta:
+         model = RoleSlot
+         fields = ("user", "status")
++        widgets = {
++            "user": forms.Select(
++                attrs={
++                    "class": "w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2",
++                }
++            ),
++            "status": forms.Select(
++                attrs={
++                    "class": "w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2",
++                }
++            ),
++        }
+ 
+-    def __init__(self, *args, **kwargs):
++    def __init__(self, *args, user_queryset=None, **kwargs):
+         super().__init__(*args, **kwargs)
+-        user_model = get_user_model()
+-        order_field = getattr(user_model, "USERNAME_FIELD", "username")
+-        try:
+-            user_model._meta.get_field(order_field)
+-        except FieldDoesNotExist:
+-            order_field = "pk"
+-        self.fields["user"].queryset = user_model.objects.order_by(order_field)
+\ No newline at end of file
++        self.fields["user"].queryset = user_queryset or _ordered_user_queryset()
++        self.fields["user"].empty_label = "— Libre —"
++
++    @staticmethod
++    def default_user_queryset():
++        return _ordered_user_queryset()
+\ No newline at end of file
+diff --git a/ops/models.py b/ops/models.py
+index d098431..98cfc7e 100644
+--- a/ops/models.py
++++ b/ops/models.py
+@@ -11,7 +11,12 @@ class Ship(models.Model):
+         ("MR", "Multirôle"),
+         ("CAP", "Capital"),
+     ]
+-    category = models.CharField("Catégorie", max_length=3, choices=CATEGORY_CHOICES, default="MR")
++    category = models.CharField(
++        "Catégorie",
++        max_length=3,
++        choices=CATEGORY_CHOICES,
++        default="MR",
++    )
+     min_crew = models.PositiveSmallIntegerField("Équipage minimum", default=1)
+     max_crew = models.PositiveSmallIntegerField("Équipage maximum")
+ 
+@@ -43,6 +48,12 @@ class ShipRoleTemplate(models.Model):
+ 
+ 
+ class RoleSlot(models.Model):
++    STATUS_CHOICES = [
++        ("open", "Libre"),
++        ("assigned", "Assigné"),
++        ("confirmed", "Confirmé"),
++    ]
++
+     ship = models.ForeignKey(
+         Ship,
+         on_delete=models.CASCADE,
+@@ -59,16 +70,7 @@ class RoleSlot(models.Model):
+         related_name="role_slots",
+         verbose_name="Utilisateur",
+     )
+-    status = models.CharField(
+-        "Statut",
+-        max_length=16,
+-        default="open",
+-        choices=[
+-            ("open", "Libre"),
+-            ("assigned", "Assigné"),
+-            ("confirmed", "Confirmé"),
+-        ],
+-    )
++    status = models.CharField("Statut", max_length=16, default="open", choices=STATUS_CHOICES)
+ 
+     class Meta:
+         unique_together = ("ship", "role_name", "index")
+diff --git a/ops/tests.py b/ops/tests.py
+index 67c7718..b2d8985 100644
+--- a/ops/tests.py
++++ b/ops/tests.py
+@@ -2,7 +2,6 @@ from django.contrib.auth.models import User
+ from django.test import TestCase
+ from django.urls import reverse
+ 
+-# Create your tests here.
+ from .models import RoleSlot, Ship
+ 
+ 
+diff --git a/ops/urls.py b/ops/urls.py
+index 860c472..38b6f81 100644
+--- a/ops/urls.py
++++ b/ops/urls.py
+@@ -1,4 +1,5 @@
+ from django.urls import path
++
+ from . import views
+ 
+ urlpatterns = [
+@@ -6,4 +7,4 @@ urlpatterns = [
+     path("ships/allocation/", views.ships_allocation, name="ships_allocation"),
+     path("ships/<int:pk>/", views.ship_detail, name="ship_detail"),
+     path("slot/<int:pk>/update/", views.role_slot_update, name="role_slot_update"),
+-]
+\ No newline at end of file
++]
+diff --git a/ops/views.py b/ops/views.py
+index d2ef13d..7785a78 100644
+--- a/ops/views.py
++++ b/ops/views.py
+@@ -1,69 +1,90 @@
+-from django.contrib.auth.decorators import login_required, user_passes_test
+-from collections import OrderedDict
++"""Views for the operations module."""
++
++from collections import defaultdict, OrderedDict
+ 
++from django.contrib import messages
++from django.contrib.auth.decorators import login_required, user_passes_test
+ from django.db.models import Prefetch
+ from django.shortcuts import get_object_or_404, redirect, render
+ from django.utils.http import url_has_allowed_host_and_scheme
+-from django.contrib import messages
+-from .models import Ship, RoleSlot
++
+ from .forms import RoleSlotForm, ShipRoleTemplateForm
++from .models import RoleSlot, Ship
++
++STATUS_BADGES = {
++    "open": "bg-white/10 text-white/60 border border-white/20",
++    "assigned": "bg-amber-500/20 text-amber-200 border border-amber-500/40",
++    "confirmed": "bg-emerald-500/20 text-emerald-200 border border-emerald-500/40",
++}
++
+ 
+ def is_planner(user):
+-    return user.is_superuser or user.groups.filter(name__in=["Planner", "Administrateur", "Planificateur"]).exists()
++    """Return True if the user can manage ship allocations."""
++
++    return user.is_superuser or user.groups.filter(
++        name__in=["Planner", "Administrateur", "Planificateur"]
++    ).exists()
++
+ 
+ @login_required
+ def ships_list(request):
+-    cat = request.GET.get("cat")
+-    qs = Ship.objects.all()
+-    if cat:
+-        qs = qs.filter(category=cat)
+-    ships = qs.order_by("name")
+-    categories = [
+-        ("LF", "Chasseur léger"),
+-        ("MF", "Chasseur moyen"),
+-        ("HF", "Chasseur lourd"),
+-        ("MR", "Multirôle"),
+-        ("CAP", "Capital"),
+-    ]
+-    return render(request, "ops/ships_list.html", {"ships": ships, "categories": categories, "current_cat": cat})
++    """Display the list of ships, optionally filtered by category."""
++
++    category = request.GET.get("cat")
++    queryset = Ship.objects.all()
++    if category:
++        queryset = queryset.filter(category=category)
++    ships = queryset.order_by("name")
++
++    return render(
++        request,
++        "ops/ships_list.html",
++        {
++            "ships": ships,
++            "categories": Ship.CATEGORY_CHOICES,
++            "current_cat": category,
++        },
++    )
+ 
+ 
+ @login_required
+ def ships_allocation(request):
++    """Show all ships with their crew allocations."""
++
+     ships = list(
+         Ship.objects.prefetch_related(
+             Prefetch(
+                 "role_slots",
+-                queryset=RoleSlot.objects.select_related("user").order_by("role_name", "index"),
++                queryset=RoleSlot.objects.select_related("user").order_by(
++                    "role_name", "index"
++                ),
+             )
+         ).order_by("category", "name")
+     )
++
+     can_edit = is_planner(request.user)
++    user_queryset = RoleSlotForm.default_user_queryset() if can_edit else None
+ 
+-    categories = OrderedDict(
+-        (
+-            ("LF", "Chasseur léger"),
+-            ("MF", "Chasseur moyen"),
+-            ("HF", "Chasseur lourd"),
+-            ("MR", "Multirôle"),
+-            ("CAP", "Capital"),
+-        )
+-    )
++    categories = OrderedDict(Ship.CATEGORY_CHOICES)
++    categorized_ships = {code: [] for code in categories}
+ 
+-    categorized = {code: [] for code in categories.keys()}
+     for ship in ships:
+-        grouped = OrderedDict()
++        grouped_slots = OrderedDict()
+         for slot in ship.role_slots.all():
+             if can_edit:
+-                slot.form = RoleSlotForm(instance=slot)
+-            grouped.setdefault(slot.role_name, []).append(slot)
+-        ship.grouped_slots = grouped.items()
+-        categorized[ship.category].append(ship)
++                slot.form = RoleSlotForm(
++                    instance=slot,
++                    user_queryset=user_queryset,
++                )
++            slot.badge_class = STATUS_BADGES.get(slot.status, STATUS_BADGES["open"])
++            grouped_slots.setdefault(slot.role_name, []).append(slot)
++        ship.grouped_slots = list(grouped_slots.items())
++        categorized_ships[ship.category].append(ship)
+ 
+     grouped_ships = [
+-        (label, categorized[code])
++        (label, categorized_ships[code])
+         for code, label in categories.items()
+-        if categorized[code]
++        if categorized_ships[code]
+     ]
+ 
+     return render(
+@@ -78,36 +99,67 @@ def ships_allocation(request):
+ 
+ @login_required
+ def ship_detail(request, pk):
++    """Display the details of a single ship and manage its role templates."""
++
+     ship = get_object_or_404(Ship, pk=pk)
+-    slots_by_role = {}
++    can_edit = is_planner(request.user)
++    user_queryset = RoleSlotForm.default_user_queryset() if can_edit else None
++
++    slots_by_role = defaultdict(list)
+     for slot in ship.role_slots.select_related("user").order_by("role_name", "index"):
+-        slots_by_role.setdefault(slot.role_name, []).append(slot)
++        if can_edit:
++            slot.form = RoleSlotForm(
++                instance=slot,
++                user_queryset=user_queryset,
++            )
++        slot.badge_class = STATUS_BADGES.get(slot.status, STATUS_BADGES["open"])
++        slots_by_role[slot.role_name].append(slot)
+ 
+     role_form = ShipRoleTemplateForm()
+-    can_edit = is_planner(request.user)
+ 
+     if request.method == "POST" and can_edit and "role_name" in request.POST:
+         role_form = ShipRoleTemplateForm(request.POST)
+         if role_form.is_valid():
+-            rt = role_form.save(commit=False)
+-            rt.ship = ship
+-            rt.save()  # signals create missing RoleSlots
++            role_template = role_form.save(commit=False)
++            role_template.ship = ship
++            role_template.save()
+             messages.success(request, "Rôle ajouté au vaisseau.")
+             return redirect("ship_detail", pk=ship.pk)
+ 
+-    return render(request, "ops/ship_detail.html",
+-                  {"ship": ship, "slots_by_role": slots_by_role, "role_form": role_form, "can_edit": can_edit})
++    return render(
++        request,
++        "ops/ship_detail.html",
++        {
++            "ship": ship,
++            "slots_by_role": dict(slots_by_role),
++            "role_form": role_form,
++            "can_edit": can_edit,
++        },
++    )
++
+ 
+ @login_required
+ @user_passes_test(is_planner)
+ def role_slot_update(request, pk):
++    """Update a single role slot assignment."""
++
+     slot = get_object_or_404(RoleSlot, pk=pk)
++
+     if request.method == "POST":
+-        form = RoleSlotForm(request.POST, instance=slot)
++        form = RoleSlotForm(
++            request.POST,
++            instance=slot,
++            user_queryset=RoleSlotForm.default_user_queryset(),
++        )
+         if form.is_valid():
+             form.save()
+             messages.success(request, "Affectation mise à jour.")
+         next_url = request.POST.get("next")
+-        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
++        if next_url and url_has_allowed_host_and_scheme(
++            next_url,
++            allowed_hosts={request.get_host()},
++            require_https=request.is_secure(),
++        ):
+             return redirect(next_url)
+-    return redirect("ship_detail", pk=slot.ship_id)
+\ No newline at end of file
++
++    return redirect("ship_detail", pk=slot.ship_id)
+diff --git a/templates/base.html b/templates/base.html
+index 0b258e2..41d3a94 100644
+--- a/templates/base.html
++++ b/templates/base.html
+@@ -1,22 +1,28 @@
+-@@ -2,46 +2,47 @@
++<!DOCTYPE html>
+ <html lang="fr" class="h-full">
+ <head>
+   <meta charset="utf-8" />
+   <meta name="viewport" content="width=device-width, initial-scale=1" />
+   <title>{% block title %}C.K.F.R{% endblock %}</title>
+   <script src="https://cdn.tailwindcss.com"></script>
+-  <meta name="color-scheme" content="dark">
++  <meta name="color-scheme" content="dark" />
+   <style>
+     :root { color-scheme: dark; }
+-    .noise { position: fixed; inset: -50px; background-image: radial-gradient(white 1px, transparent 1px);
+-      background-size: 3px 3px; opacity: .02; pointer-events: none; filter: contrast(120%); }
++    .noise {
++      position: fixed;
++      inset: -50px;
++      background-image: radial-gradient(white 1px, transparent 1px);
++      background-size: 3px 3px;
++      opacity: .02;
++      pointer-events: none;
++      filter: contrast(120%);
++    }
+   </style>
+ </head>
+ <body class="h-full bg-black text-white">
+   <div class="noise"></div>
+ 
+   {% if user.is_authenticated %}
+-  <!-- Header (visible UNIQUEMENT après connexion) -->
+   <header class="border-b border-white/10 bg-black/60 backdrop-blur sticky top-0 z-40">
+     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+       <a href="{% url 'ships_list' %}" class="flex items-center gap-8 group">
+@@ -40,9 +46,9 @@
+   <footer class="border-t border-white/10 text-xs text-white/50">
+     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between">
+       <span>© C.K.F.R</span>
+-      <span>Pirates of the Verse · noir & blanc</span>
++      <span>Pirates of the Verse · noir &amp; blanc</span>
+     </div>
+   </footer>
+   {% endif %}
+ </body>
+-</html>
+\ No newline at end of file
++</html>
+diff --git a/templates/login.html b/templates/login.html
+index a3813d9..7d58ac2 100644
+--- a/templates/login.html
++++ b/templates/login.html
+@@ -22,17 +22,31 @@
+         {% csrf_token %}
+         <div>
+           <label for="id_username" class="block text-sm font-medium text-slate-200 mb-1">Identifiant</label>
+-          <input id="id_username" name="username" type="text" autocomplete="username" required
+-                 class="w-full rounded-xl border border-white/10 bg-white/5 text-white placeholder-slate-400 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent" />
++          <input
++            id="id_username"
++            name="username"
++            type="text"
++            autocomplete="username"
++            required
++            class="w-full rounded-xl border border-white/10 bg-white/5 text-white placeholder-slate-400 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent"
++          />
+         </div>
+         <div>
+           <label for="id_password" class="block text-sm font-medium text-slate-200 mb-1">Mot de passe</label>
+-          <input id="id_password" name="password" type="password" autocomplete="current-password" required
+-                 class="w-full rounded-xl border border-white/10 bg-white/5 text-white placeholder-slate-400 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent" />
++          <input
++            id="id_password"
++            name="password"
++            type="password"
++            autocomplete="current-password"
++            required
++            class="w-full rounded-xl border border-white/10 bg-white/5 text-white placeholder-slate-400 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent"
++          />
+         </div>
+ 
+-        <button type="submit"
+-                class="w-full rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 transition px-4 py-2.5 font-medium">
++        <button
++          type="submit"
++          class="w-full rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 transition px-4 py-2.5 font-medium"
++        >
+           Se connecter
+         </button>
+       </form>
+diff --git a/templates/ops/ship_allocation.html b/templates/ops/ship_allocation.html
+index ffe0363..3b5a4bd 100644
+--- a/templates/ops/ship_allocation.html
++++ b/templates/ops/ship_allocation.html
+@@ -13,84 +13,85 @@
+ 
+   <div class="space-y-10">
+     {% for category_label, ships in grouped_ships %}
+-      <section class="space-y-4">
+-        <h2 class="text-xl font-semibold border-b border-white/10 pb-2">{{ category_label }}</h2>
+-        {% if ships %}
+-          <div class="grid gap-4 lg:grid-cols-2">
+-            {% for ship in ships %}
+-              <details class="group border border-white/10 rounded-xl bg-white/5 open:bg-white/5 transition">
+-                <summary class="list-none cursor-pointer select-none">
+-                  <div class="flex items-center justify-between p-4">
+-                    <div>
+-                      <p class="text-lg font-medium">{{ ship.name }}</p>
+-                      <p class="text-xs uppercase tracking-widest text-white/40">Équipage {{ ship.min_crew }}&ndash;{{ ship.max_crew }} pilotes</p>
++    <section class="space-y-4">
++      <h2 class="text-xl font-semibold border-b border-white/10 pb-2">{{ category_label }}</h2>
++      {% if ships %}
++      <div class="grid gap-4 lg:grid-cols-2">
++        {% for ship in ships %}
++        <details class="group border border-white/10 rounded-xl bg-white/5 open:bg-white/5 transition">
++          <summary class="list-none cursor-pointer select-none">
++            <div class="flex items-center justify-between p-4">
++              <div>
++                <p class="text-lg font-medium">{{ ship.name }}</p>
++                <p class="text-xs uppercase tracking-widest text-white/40">
++                  Équipage {{ ship.min_crew }}&ndash;{{ ship.max_crew }} pilotes
++                </p>
++              </div>
++              <span class="text-white/40 group-open:rotate-180 transition-transform">⌄</span>
++            </div>
++          </summary>
++          <div class="border-t border-white/10">
++            {% if ship.grouped_slots %}
++            <dl class="divide-y divide-white/5">
++              {% for role_name, slots in ship.grouped_slots %}
++              <div class="p-4 space-y-3">
++                <dt class="text-sm uppercase tracking-[0.2em] text-white/50">{{ role_name }}</dt>
++                <dd class="space-y-3">
++                  {% for slot in slots %}
++                  <div class="bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col gap-3">
++                    <div class="flex flex-wrap justify-between items-center gap-3">
++                      <div class="text-sm text-white/70">Place n°{{ slot.index }}</div>
++                      <div class="text-xs uppercase tracking-[0.2em] px-2 py-1 rounded-full {{ slot.badge_class }}">
++                        {{ slot.get_status_display }}
++                      </div>
+                     </div>
+-                    <span class="text-white/40 group-open:rotate-180 transition-transform">⌄</span>
++                    {% if can_edit %}
++                    <form method="post" action="{% url 'role_slot_update' slot.pk %}" class="space-y-3">
++                      {% csrf_token %}
++                      <input type="hidden" name="next" value="{% url 'ships_allocation' %}" />
++                      <label class="block text-sm space-y-1">
++                        <span class="text-white/50">Utilisateur</span>
++                        {{ slot.form.user }}
++                      </label>
++                      <label class="block text-sm space-y-1">
++                        <span class="text-white/50">Statut</span>
++                        {{ slot.form.status }}
++                      </label>
++                      <div class="flex justify-end">
++                        <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1.5 text-sm">
++                          Mettre à jour
++                        </button>
++                      </div>
++                    </form>
++                    {% else %}
++                    <div class="text-sm text-white/60">
++                      {% if slot.user %}
++                      Assigné à <span class="font-medium text-white">{{ slot.user.get_username }}</span>
++                      {% else %}
++                      Aucune affectation pour le moment.
++                      {% endif %}
++                    </div>
++                    {% endif %}
+                   </div>
+-                </summary>
+-                <div class="border-t border-white/10">
+-                  {% if ship.grouped_slots %}
+-                    <dl class="divide-y divide-white/5">
+-                      {% for role_name, slots in ship.grouped_slots %}
+-                        <div class="p-4 space-y-3">
+-                          <dt class="text-sm uppercase tracking-[0.2em] text-white/50">{{ role_name }}</dt>
+-                          <dd class="space-y-3">
+-                            {% for slot in slots %}
+-                              <div class="bg-white/5 border border-white/10 rounded-lg p-4 flex flex-col gap-3">
+-                                <div class="flex flex-wrap justify-between items-center gap-3">
+-                                  <div class="text-sm text-white/70">Place n°{{ slot.index }}</div>
+-                                  <div class="text-xs uppercase tracking-[0.2em] px-2 py-1 rounded-full
+-                                              {% if slot.status == 'confirmed' %}bg-emerald-500/20 text-emerald-200 border border-emerald-500/40{% elif slot.status == 'assigned' %}bg-amber-500/20 text-amber-200 border border-amber-500/40{% else %}bg-white/10 text-white/60 border border-white/20{% endif %}">
+-                                    {% if slot.status == 'confirmed' %}Confirmé{% elif slot.status == 'assigned' %}Assigné{% else %}Libre{% endif %}
+-                                  </div>
+-                                </div>
+-                                {% if can_edit %}
+-                                  <form method="post" action="{% url 'role_slot_update' slot.pk %}" class="space-y-3">
+-                                    {% csrf_token %}
+-                                    <input type="hidden" name="next" value="{% url 'ships_allocation' %}">
+-                                    <label class="block text-sm">
+-                                      <span class="text-white/50">Utilisateur</span>
+-                                      <div class="mt-1">{{ slot.form.user }}</div>
+-                                    </label>
+-                                    <label class="block text-sm">
+-                                      <span class="text-white/50">Statut</span>
+-                                      <div class="mt-1">{{ slot.form.status }}</div>
+-                                    </label>
+-                                    <div class="flex justify-end">
+-                                      <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1.5 text-sm">
+-                                        Mettre à jour
+-                                      </button>
+-                                    </div>
+-                                  </form>
+-                                {% else %}
+-                                  <div class="text-sm text-white/60">
+-                                    {% if slot.user %}
+-                                      Assigné à <span class="font-medium text-white">{{ slot.user.username }}</span>
+-                                    {% else %}
+-                                      Aucune affectation pour le moment.
+-                                    {% endif %}
+-                                  </div>
+-                                {% endif %}
+-                              </div>
+-                            {% endfor %}
+-                          </dd>
+-                        </div>
+-                      {% endfor %}
+-                    </dl>
+-                  {% else %}
+-                    <p class="p-4 text-sm text-white/50">Aucun rôle n'est encore défini pour ce vaisseau.</p>
+-                  {% endif %}
+-                </div>
+-              </details>
+-            {% endfor %}
++                  {% endfor %}
++                </dd>
++              </div>
++              {% endfor %}
++            </dl>
++            {% else %}
++            <p class="p-4 text-sm text-white/50">Aucun rôle n'est encore défini pour ce vaisseau.</p>
++            {% endif %}
+           </div>
+-        {% else %}
+-          <p class="text-sm text-white/50">Aucun vaisseau n'est disponible dans cette catégorie.</p>
+-        {% endif %}
+-      </section>
++        </details>
++        {% endfor %}
++      </div>
++      {% else %}
++      <p class="text-sm text-white/50">Aucun vaisseau n'est disponible dans cette catégorie.</p>
++      {% endif %}
++    </section>
+     {% empty %}
+-      <p class="text-white/60">Aucun vaisseau enregistré.</p>
++    <p class="text-white/60">Aucun vaisseau enregistré.</p>
+     {% endfor %}
+   </div>
+ </section>
+-{% endblock %}
+\ No newline at end of file
++{% endblock %}
+diff --git a/templates/ops/ship_detail.html b/templates/ops/ship_detail.html
+index 2213b43..5e7d9da 100644
+--- a/templates/ops/ship_detail.html
++++ b/templates/ops/ship_detail.html
+@@ -1,48 +1,73 @@
+-@@ -15,45 +15,45 @@
+-  </div>
++{% extends "base.html" %}
++{% block title %}{{ ship.name }} · C.K.F.R{% endblock %}
++{% block body %}
++<section class="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-8">
++  <header class="space-y-2">
++    <p class="text-sm uppercase tracking-[0.3em] text-white/50">Fiche vaisseau</p>
++    <h1 class="text-3xl font-semibold">{{ ship.name }}</h1>
++    <p class="text-white/60 text-sm">
++      Catégorie : {{ ship.get_category_display }} · Équipage {{ ship.min_crew }}–{{ ship.max_crew }} pilotes
++    </p>
++  </header>
+ 
+   {% if can_edit %}
+-  <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+-    <h2 class="font-medium mb-3">Add role template</h2>
+-    <form method="post" class="grid sm:grid-cols-3 gap-3">
++  <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
++    <h2 class="font-medium">Ajouter un rôle</h2>
++    <form method="post" class="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+       {% csrf_token %}
+-      {{ role_form.role_name }}
+-      {{ role_form.slots }}
+-      <button class="rounded border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] px-3 py-2">Add</button>
++      <div class="sm:col-span-1">{{ role_form.role_name }}</div>
++      <div class="sm:col-span-1">{{ role_form.slots }}</div>
++      <button class="rounded border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] px-3 py-2">Ajouter</button>
+     </form>
+-    <p class="text-xs text-white/50 mt-2">Missing slots are created automatically.</p>
++    <p class="text-xs text-white/50">Les places manquantes sont créées automatiquement.</p>
+   </div>
+   {% endif %}
+ 
+   {% for role, slots in slots_by_role.items %}
+-  <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+-    <div class="font-medium mb-3">{{ role }}</div>
+-    <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+-      {% for s in slots %}
+-      <form method="post" action="{% url 'role_slot_update' s.pk %}" class="rounded-xl bg-white/5 border border-white/10 p-3">
+-        {% csrf_token %}
+-        <div class="text-xs text-white/60 mb-2">Slot #{{ s.index }}</div>
+-        <select name="user" class="w-full bg-black/40 border border-white/15 rounded px-2 py-1 mb-2">
+-          <option value="">— free —</option>
+-          {% for u in request.user.__class__.objects.all %}
+-          <option value="{{ u.id }}" {% if s.user_id == u.id %}selected{% endif %}>{{ u.username }}</option>
+-          {% for u in all_users %}
+-          <option value="{{ u.pk }}" {% if s.user_id == u.pk %}selected{% endif %}>{{ u.get_username }}</option>
+-          {% endfor %}
+-        </select>
+-        <select name="status" class="w-full bg-black/40 border border-white/15 rounded px-2 py-1 mb-3">
+-          <option value="open" {% if s.status == 'open' %}selected{% endif %}>Free</option>
+-          <option value="assigned" {% if s.status == 'assigned' %}selected{% endif %}>Assigned</option>
+-          <option value="confirmed" {% if s.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+-        </select>
+-        <button class="w-full rounded border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] px-3 py-1.5">Save</button>
+-      </form>
++  <section class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-4">
++    <h2 class="font-medium">{{ role }}</h2>
++    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
++      {% for slot in slots %}
++      <div class="rounded-xl bg-white/5 border border-white/10 p-4 space-y-3">
++        <div class="flex items-center justify-between text-sm text-white/60">
++          <span>Place n°{{ slot.index }}</span>
++          <span class="uppercase tracking-[0.2em] text-xs px-2 py-1 rounded-full {{ slot.badge_class }}">
++            {{ slot.get_status_display }}
++          </span>
++        </div>
++        {% if can_edit %}
++        <form method="post" action="{% url 'role_slot_update' slot.pk %}" class="space-y-3">
++          {% csrf_token %}
++          <input type="hidden" name="next" value="{% url 'ship_detail' ship.pk %}" />
++          <label class="block text-sm space-y-1">
++            <span class="text-white/50">Utilisateur</span>
++            {{ slot.form.user }}
++          </label>
++          <label class="block text-sm space-y-1">
++            <span class="text-white/50">Statut</span>
++            {{ slot.form.status }}
++          </label>
++          <div class="flex justify-end">
++            <button type="submit" class="rounded border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] px-3 py-1.5 text-sm">
++              Mettre à jour
++            </button>
++          </div>
++        </form>
++        {% else %}
++        <p class="text-sm text-white/70">
++          {% if slot.user %}
++          Assigné à <span class="font-medium text-white">{{ slot.user.get_username }}</span>
++          {% else %}
++          Aucune affectation pour le moment.
++          {% endif %}
++        </p>
++        {% endif %}
++      </div>
+       {% endfor %}
+     </div>
+-  </div>
++  </section>
+   {% empty %}
+-  <p class="text-white/60">No roles defined for this ship.</p>
++  <p class="text-white/60">Aucun rôle n'est encore défini pour ce vaisseau.</p>
+   {% endfor %}
+-
+ </section>
+-{% endblock %}
+\ No newline at end of file
++{% endblock %}
+diff --git a/templates/ops/ships_list.html b/templates/ops/ships_list.html
+index 5bd5158..799d97a 100644
+--- a/templates/ops/ships_list.html
++++ b/templates/ops/ships_list.html
+@@ -1,14 +1,22 @@
+ {% extends "base.html" %}
+-{% block title %}Ships · C.K.F.R{% endblock %}
++{% block title %}Vaisseaux · C.K.F.R{% endblock %}
+ {% block body %}
+-<section class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+-  <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+-    <h1 class="text-2xl sm:text-3xl font-semibold">Ships</h1>
++<section class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
++  <div class="flex flex-wrap items-center justify-between gap-4">
++    <h1 class="text-2xl sm:text-3xl font-semibold">Vaisseaux</h1>
+     <div class="flex flex-wrap gap-2">
+-      <a href="?" class="px-3 py-1.5 rounded-full border border-white/15 text-sm {{ not current_cat|yesno:',bg-white/10' }}">All</a>
+-      {% for c,val in categories %}
+-      <a href="?cat={{ c }}" class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if current_cat == c %}bg-white/10{% endif %}">
+-        {{ val }}
++      <a
++        href="?"
++        class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if not current_cat %}bg-white/10{% endif %}"
++      >
++        Toutes
++      </a>
++      {% for code, label in categories %}
++      <a
++        href="?cat={{ code }}"
++        class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if current_cat == code %}bg-white/10{% endif %}"
++      >
++        {{ label }}
+       </a>
+       {% endfor %}
+     </div>
+@@ -16,23 +24,26 @@
+ 
+   <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+     {% for ship in ships %}
+-    <a href="{% url 'ship_detail' ship.pk %}" class="group rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition p-4 flex flex-col gap-2">
++    <a
++      href="{% url 'ship_detail' ship.pk %}"
++      class="group rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition p-4 flex flex-col gap-2"
++    >
+       <div class="flex items-center justify-between">
+         <div class="font-medium group-hover:opacity-90">{{ ship.name }}</div>
+-        <!-- tiny icon duo -->
+         <div class="flex items-center gap-1 opacity-70">
+-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18c1.2 0 2 .8 3 1.5S8.8 21 10 21s2-.8 3-1.5S15.8 18 17 18s2 .8 3 1.5 1.8 1.5 3 1.5v1H2v-1c1.2 0 1.8-.8 1-1.5S1.8 18 3 18Z"/></svg>
+-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c3 0 6 4 6 8 0 3-2 6-6 12-4-6-6-9-6-12 0-4 3-8 6-8Z"/></svg>
++          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
++            <path d="M3 18c1.2 0 2 .8 3 1.5S8.8 21 10 21s2-.8 3-1.5S15.8 18 17 18s2 .8 3 1.5 1.8 1.5 3 1.5v1H2v-1c1.2 0 1.8-.8 1-1.5S1.8 18 3 18Z" />
++          </svg>
++          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
++            <path d="M12 2c3 0 6 4 6 8 0 3-2 6-6 12-4-6-6-9-6-12 0-4 3-8 6-8Z" />
++          </svg>
+         </div>
+       </div>
+-      <div class="text-xs text-white/60">
+-        Category:
+-        {% if ship.category == 'LF' %}Light fighter{% elif ship.category == 'MF' %}Medium fighter{% elif ship.category == 'HF' %}Heavy fighter{% elif ship.category == 'MR' %}Multirole{% else %}Capital{% endif %}
+-      </div>
+-      <div class="text-xs text-white/60">Crew {{ ship.min_crew }}–{{ ship.max_crew }}</div>
++      <div class="text-xs text-white/60">Catégorie : {{ ship.get_category_display }}</div>
++      <div class="text-xs text-white/60">Équipage {{ ship.min_crew }}–{{ ship.max_crew }}</div>
+     </a>
+     {% empty %}
+-    <p class="text-white/60">No ships yet.</p>
++    <p class="text-white/60">Aucun vaisseau pour le moment.</p>
+     {% endfor %}
+   </div>
+ </section>
+-- 
+2.43.0
+
