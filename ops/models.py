@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import models
-from django.contrib.auth.models import User
+
 
 class Ship(models.Model):
     name = models.CharField("Nom du vaisseau", max_length=80, unique=True)
@@ -22,8 +22,14 @@ class Ship(models.Model):
         verbose_name = "Vaisseau"
         verbose_name_plural = "Vaisseaux"
 
+
 class ShipRoleTemplate(models.Model):
-    ship = models.ForeignKey(Ship, on_delete=models.CASCADE, related_name="role_templates", verbose_name="Vaisseau")
+    ship = models.ForeignKey(
+        Ship,
+        on_delete=models.CASCADE,
+        related_name="role_templates",
+        verbose_name="Vaisseau",
+    )
     role_name = models.CharField("Rôle", max_length=40)
     slots = models.PositiveSmallIntegerField("Nombre de places", default=1)
 
@@ -35,21 +41,22 @@ class ShipRoleTemplate(models.Model):
     def __str__(self):
         return f"{self.ship} · {self.role_name} ×{self.slots}"
 
+
 class RoleSlot(models.Model):
     ship = models.ForeignKey(
         Ship,
         on_delete=models.CASCADE,
         related_name="role_slots",
-        verbose_name="Vaisseau"
+        verbose_name="Vaisseau",
     )
     role_name = models.CharField("Rôle", max_length=40)
     index = models.PositiveSmallIntegerField("N° de place", default=1)
     user = models.ForeignKey(
-        User,
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        related_name="role_slots",
         verbose_name="Utilisateur",
     )
     status = models.CharField(
@@ -69,6 +76,5 @@ class RoleSlot(models.Model):
         verbose_name_plural = "Places de rôle"
 
     def __str__(self):
-        who = self.user.username if self.user else "libre"
         who = self.user.get_username() if self.user else "libre"
         return f"{self.ship} · {self.role_name} #{self.index} → {who}"
