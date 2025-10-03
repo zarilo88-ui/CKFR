@@ -80,7 +80,7 @@ STORAGES = {"staticfiles": {"BACKEND":"whitenoise.storage.CompressedManifestStat
 
 # Auth redirects
 LOGIN_URL = "/"
-LOGIN_REDIRECT_URL = "/dashboard/"
+LOGIN_REDIRECT_URL = "/ships/"
 
 # Security (prod only)
 SECURE_SSL_REDIRECT = not DEBUG
