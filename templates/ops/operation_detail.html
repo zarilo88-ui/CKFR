@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load ops_extras %}
 {% block title %}{{ op.title }} · C.K.F.R{% endblock %}
 {% block body %}
 <div class="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
@@ -22,10 +23,13 @@
           <form method="post" action="{% url 'assignment_update' a.pk %}" class="rounded-lg bg-white/10 p-3">
             {% csrf_token %}
             <div class="text-sm text-slate-300 mb-2">{{ a.role_name }}</div>
+            {% ordered_users as assignable_users %}
             <select name="user" class="w-full bg-white/5 border border-white/10 rounded px-2 py-1 mb-2">
               <option value="">— libre —</option>
               {% for u in request.user.__class__.objects.all %}
                 <option value="{{ u.id }}" {% if a.user_id == u.id %}selected{% endif %}>{{ u.username }}</option>
+              {% for u in assignable_users %}
+                <option value="{{ u.pk }}" {% if a.user_id == u.pk %}selected{% endif %}>{{ u.get_username }}</option>
               {% endfor %}
             </select>
             <select name="status" class="w-full bg-white/5 border border-white/10 rounded px-2 py-1 mb-2">
