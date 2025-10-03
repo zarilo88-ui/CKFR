@@ -94,8 +94,11 @@ STORAGES = {
 
 # Auth redirects
 LOGIN_URL = "/"
-LOGIN_REDIRECT_URL = "/ships/"
-
+if DEBUG:
+    LOGIN_REDIRECT_URL = "/ships/"
+else:
+    LOGIN_REDIRECT_URL = "https://www.ckfr.fr/ships/"
+    
 # Security (prod only)
 SECURE_SSL_REDIRECT = not DEBUG
 SECURE_HSTS_SECONDS = 3600 if not DEBUG else 0
