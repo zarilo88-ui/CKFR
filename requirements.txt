@@ -1,0 +1,7 @@
+Django
+gunicorn
+uvicorn
+psycopg2-binary
+dj-database-url
+whitenoise[brotli]
+argon2-cffi
