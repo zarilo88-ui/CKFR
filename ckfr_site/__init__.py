@@ -1,0 +1,1 @@
+default_app_config = "ckfr_site.apps.CkfrSiteConfig"
