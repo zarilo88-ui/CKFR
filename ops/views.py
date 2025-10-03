@@ -20,7 +20,6 @@ STATUS_BADGES = {
 
 def is_planner(user):
     """Return True if the user can manage ship allocations."""
-
     return user.is_superuser or user.groups.filter(
         name__in=["Planner", "Administrateur", "Planificateur"]
     ).exists()
@@ -29,7 +28,6 @@ def is_planner(user):
 @login_required
 def ships_list(request):
     """Display the list of ships, optionally filtered by category."""
-
     category = request.GET.get("cat")
     queryset = Ship.objects.all()
     if category:
@@ -50,7 +48,6 @@ def ships_list(request):
 @login_required
 def ships_allocation(request):
     """Show all ships with their crew allocations."""
-
     ships = list(
         Ship.objects.prefetch_related(
             Prefetch(
@@ -89,7 +86,7 @@ def ships_allocation(request):
 
     return render(
         request,
-        "ops/ship_allocation.html",
+        "ops/ships_allocation.html",  # ensure this template exists
         {
             "can_edit": can_edit,
             "grouped_ships": grouped_ships,
@@ -100,7 +97,6 @@ def ships_allocation(request):
 @login_required
 def ship_detail(request, pk):
     """Display the details of a single ship and manage its role templates."""
-
     ship = get_object_or_404(Ship, pk=pk)
     can_edit = is_planner(request.user)
     user_queryset = RoleSlotForm.default_user_queryset() if can_edit else None
@@ -142,7 +138,6 @@ def ship_detail(request, pk):
 @user_passes_test(is_planner)
 def role_slot_update(request, pk):
     """Update a single role slot assignment."""
-
     slot = get_object_or_404(RoleSlot, pk=pk)
 
     if request.method == "POST":
@@ -156,24 +151,8 @@ def role_slot_update(request, pk):
             messages.success(request, "Affectation mise à jour.")
         next_url = request.POST.get("next")
         if next_url and url_has_allowed_host_and_scheme(
-            next_url,
-            allowed_hosts={request.get_host()},
-            require_https=request.is_secure(),
+            next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
         ):
             return redirect(next_url)
 
-    return redirect("ship_detail", pk=slot.ship_id)from django.shortcuts import render
-from .models import Ship, RoleSlot
-
-def ships_allocation(request):
-    ships = Ship.objects.all().order_by("name")
-    role_slots = (
-        RoleSlot.objects
-        .select_related("ship", "user")
-        .order_by("ship__name", "role_name", "index")
-    )
-    context = {
-        "ships": ships,
-        "role_slots": role_slots,
-    }
-    return render(request, "ops/ships_allocation.html", context)
+    return redirect("ship_detail", pk=slot.ship_id)
