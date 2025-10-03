@@ -1,16 +1,58 @@
 <!doctype html>
-<html lang="fr" class="h-full">
+<html lang="en" class="h-full">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}C.K.F.R{% endblock %}</title>
-  <!-- Tailwind (CDN pour MVP) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <meta name="color-scheme" content="dark light">
-  <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
+  <meta name="color-scheme" content="dark">
+  <style>
+    /* Monochrome tweaks */
+    :root { color-scheme: dark; }
+    .noise {
+      position: fixed; inset: -50px;
+      background-image: radial-gradient(white 1px, transparent 1px);
+      background-size: 3px 3px; opacity: .02; pointer-events: none; filter: contrast(120%);
+    }
+  </style>
 </head>
-<body class="h-full bg-gradient-to-br from-zinc-900 via-slate-900 to-slate-800 text-slate-100">
-  {% block body %}
-  {% endblock %}
+<body class="h-full bg-black text-white">
+  <div class="noise"></div>
+  <!-- Header -->
+  <header class="border-b border-white/10 bg-black/60 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <a href="{% url 'ships_list' %}" class="flex items-center gap-3 group">
+        <!-- Pirate ship (sea) -->
+        <svg class="w-8 h-8 text-white group-hover:opacity-80 transition" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M3 18c1.2 0 2 .8 3 1.5S8.8 21 10 21s2-.8 3-1.5S15.8 18 17 18s2 .8 3 1.5 1.8 1.5 3 1.5v1H2v-1c1.2 0 1.8-.8 1-1.5S1.8 18 3 18Zm1-2h8l-3-4H5v4Zm9 0h6l-3-4h-3v4Zm-9-6h7l-2-3H4v3Zm9 0h5l-2-3h-3v3Z"/>
+        </svg>
+        <!-- Spacer slash -->
+        <span class="text-white/30">/</span>
+        <!-- Spaceship -->
+        <svg class="w-8 h-8 text-white group-hover:opacity-80 transition" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2c3 0 6 4 6 8 0 3-2 6-6 12-4-6-6-9-6-12 0-4 3-8 6-8Zm0 3a2 2 0 110 4 2 2 0 010-4Z"/>
+        </svg>
+        <div class="font-semibold tracking-wide">C.K.F.R</div>
+      </a>
+      <nav class="flex items-center gap-4 text-sm">
+        <a href="{% url 'ships_list' %}" class="text-white/80 hover:text-white">Ships</a>
+        <a href="/admin/" class="text-white/60 hover:text-white/90">Admin</a>
+        <a href="/logout/" class="rounded border border-white/20 px-3 py-1 hover:bg-white/10">Logout</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Page -->
+  <main class="min-h-screen">
+    {% block body %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/10 text-xs text-white/50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between">
+      <span>© C.K.F.R</span>
+      <span>Pirates of the Verse · black & white</span>
+    </div>
+  </footer>
 </body>
 </html>
