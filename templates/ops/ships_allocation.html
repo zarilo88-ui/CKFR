@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load ops_extras %}
+
+{% block content %}
+<h1>Ships Allocation</h1>
+
+<h2>Ships</h2>
+<ul>
+  {% for s in ships %}
+    <li>{{ s.name }} ({{ s.get_category_display }}) — crew {{ s.min_crew }}–{{ s.max_crew }}</li>
+  {% empty %}
+    <li>No ships.</li>
+  {% endfor %}
+</ul>
+
+<h2>Role Slots</h2>
+<table>
+  <thead>
+    <tr><th>Ship</th><th>Role</th><th>#</th><th>User</th><th>Status</th></tr>
+  </thead>
+  <tbody>
+    {% for rs in role_slots %}
+      <tr>
+        <td>{{ rs.ship.name }}</td>
+        <td>{{ rs.role_name }}</td>
+        <td>{{ rs.index }}</td>
+        <td>{{ rs.user|get_username|default:"libre" }}</td>
+        <td>{{ rs.get_status_display }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5">No role slots.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
