@@ -14,38 +14,34 @@
 </head>
 <body class="h-full bg-black text-white">
   <div class="noise"></div>
-  <!-- Header -->
+
+  {% if request.user.is_authenticated %}
+  <!-- Header (visible UNIQUEMENT après connexion) -->
   <header class="border-b border-white/10 bg-black/60 backdrop-blur sticky top-0 z-40">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-      <a href="{% if request.user.is_authenticated %}{% url 'ships_list' %}{% else %}/{% endif %}" class="flex items-center gap-3 group">
-        <svg class="w-8 h-8 text-white group-hover:opacity-80 transition" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M3 18c1.2 0 2 .8 3 1.5S8.8 21 10 21s2-.8 3-1.5S15.8 18 17 18s2 .8 3 1.5 1.8 1.5 3 1.5v1H2v-1c1.2 0 1.8-.8 1-1.5S1.8 18 3 18Z"/>
-        </svg>
-        <span class="text-white/30">/</span>
-        <svg class="w-8 h-8 text-white group-hover:opacity-80 transition" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M12 2c3 0 6 4 6 8 0 3-2 6-6 12-4-6-6-9-6-12 0-4 3-8 6-8Z"/>
-        </svg>
+      <a href="{% url 'ships_list' %}" class="flex items-center gap-6 group">
         <div class="font-semibold tracking-wide">C.K.F.R</div>
       </a>
-      {% if request.user.is_authenticated %}
-      <nav class="flex items-center gap-4 text-sm">
+      <nav class="flex items-center gap-6 text-sm">
         <a href="{% url 'ships_list' %}" class="text-white/80 hover:text-white">Vaisseaux</a>
         <a href="/admin/" class="text-white/60 hover:text-white/90">Admin</a>
         <a href="/logout/" class="rounded border border-white/20 px-3 py-1 hover:bg-white/10">Déconnexion</a>
       </nav>
-      {% endif %}
     </div>
   </header>
+  {% endif %}
 
   <main class="min-h-screen">
     {% block body %}{% endblock %}
   </main>
 
+  {% if request.user.is_authenticated %}
   <footer class="border-t border-white/10 text-xs text-white/50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between">
       <span>© C.K.F.R</span>
       <span>Pirates of the Verse · noir & blanc</span>
     </div>
   </footer>
+  {% endif %}
 </body>
 </html>
