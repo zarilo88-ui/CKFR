@@ -101,3 +101,5 @@ LANGUAGE_CODE = "fr"
 TIME_ZONE = "Europe/Paris"
 USE_I18N = True
 USE_TZ = True
+
+LOGOUT_REDIRECT_URL = "/"

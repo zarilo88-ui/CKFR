@@ -15,14 +15,14 @@
 <body class="h-full bg-black text-white">
   <div class="noise"></div>
 
-  {% if request.user.is_authenticated %}
+  {% if user.is_authenticated %}
   <!-- Header (visible UNIQUEMENT après connexion) -->
   <header class="border-b border-white/10 bg-black/60 backdrop-blur sticky top-0 z-40">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-      <a href="{% url 'ships_list' %}" class="flex items-center gap-6 group">
+      <a href="{% url 'ships_list' %}" class="flex items-center gap-8 group">
         <div class="font-semibold tracking-wide">C.K.F.R</div>
       </a>
-      <nav class="flex items-center gap-6 text-sm">
+      <nav class="flex items-center gap-8 text-sm">
         <a href="{% url 'ships_list' %}" class="text-white/80 hover:text-white">Vaisseaux</a>
         <a href="/admin/" class="text-white/60 hover:text-white/90">Admin</a>
         <a href="/logout/" class="rounded border border-white/20 px-3 py-1 hover:bg-white/10">Déconnexion</a>
@@ -35,7 +35,7 @@
     {% block body %}{% endblock %}
   </main>
 
-  {% if request.user.is_authenticated %}
+  {% if user.is_authenticated %}
   <footer class="border-t border-white/10 text-xs text-white/50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between">
       <span>© C.K.F.R</span>
