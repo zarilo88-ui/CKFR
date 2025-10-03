@@ -1,14 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Ships · C.K.F.R{% endblock %}
+{% block title %}Vaisseaux · C.K.F.R{% endblock %}
 {% block body %}
 <section class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
   <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-    <h1 class="text-2xl sm:text-3xl font-semibold">Ships</h1>
+    <h1 class="text-2xl sm:text-3xl font-semibold">Vaisseaux</h1>
     <div class="flex flex-wrap gap-2">
-      <a href="?" class="px-3 py-1.5 rounded-full border border-white/15 text-sm {{ not current_cat|yesno:',bg-white/10' }}">All</a>
-      {% for c,val in categories %}
-      <a href="?cat={{ c }}" class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if current_cat == c %}bg-white/10{% endif %}">
-        {{ val }}
+      <a href="?" class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if not current_cat %}bg-white/10{% endif %}">
+        Tous
+      </a>
+      {% for code, label in categories %}
+      <a href="?cat={{ code }}" class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if current_cat == code %}bg-white/10{% endif %}">
+        {{ label }}
       </a>
       {% endfor %}
     </div>
@@ -19,20 +21,19 @@
     <a href="{% url 'ship_detail' ship.pk %}" class="group rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition p-4 flex flex-col gap-2">
       <div class="flex items-center justify-between">
         <div class="font-medium group-hover:opacity-90">{{ ship.name }}</div>
-        <!-- tiny icon duo -->
-        <div class="flex items-center gap-1 opacity-70">
+        <div class="flex items-center gap-1 opacity-70" aria-hidden="true">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18c1.2 0 2 .8 3 1.5S8.8 21 10 21s2-.8 3-1.5S15.8 18 17 18s2 .8 3 1.5 1.8 1.5 3 1.5v1H2v-1c1.2 0 1.8-.8 1-1.5S1.8 18 3 18Z"/></svg>
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c3 0 6 4 6 8 0 3-2 6-6 12-4-6-6-9-6-12 0-4 3-8 6-8Z"/></svg>
         </div>
       </div>
       <div class="text-xs text-white/60">
-        Category:
-        {% if ship.category == 'LF' %}Light fighter{% elif ship.category == 'MF' %}Medium fighter{% elif ship.category == 'HF' %}Heavy fighter{% elif ship.category == 'MR' %}Multirole{% else %}Capital{% endif %}
+        Catégorie&nbsp;:
+        {{ ship.get_category_display }}
       </div>
-      <div class="text-xs text-white/60">Crew {{ ship.min_crew }}–{{ ship.max_crew }}</div>
+      <div class="text-xs text-white/60">Équipage {{ ship.min_crew }}&ndash;{{ ship.max_crew }}</div>
     </a>
     {% empty %}
-    <p class="text-white/60">No ships yet.</p>
+    <p class="text-white/60">Aucun vaisseau pour le moment.</p>
     {% endfor %}
   </div>
 </section>

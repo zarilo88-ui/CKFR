@@ -1,47 +1,88 @@
-  </div>
+{% extends "base.html" %}
+{% block title %}{{ ship.name }} · C.K.F.R{% endblock %}
+{% block body %}
+<section class="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+  <a href="{% url 'ships_list' %}" class="inline-flex items-center text-sm text-white/60 hover:text-white/80">← Retour à la flotte</a>
+
+  <header class="space-y-2">
+    <h1 class="text-3xl sm:text-4xl font-semibold">{{ ship.name }}</h1>
+    <p class="text-white/60 text-sm">
+      {{ ship.get_category_display }} · Équipage {{ ship.min_crew }}&ndash;{{ ship.max_crew }} personnes
+    </p>
+  </header>
 
   {% if can_edit %}
-  <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-    <h2 class="font-medium mb-3">Add role template</h2>
-    <form method="post" class="grid sm:grid-cols-3 gap-3">
+  <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-3">
+    <h2 class="text-lg font-medium">Ajouter un rôle</h2>
+    <form method="post" class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
       {% csrf_token %}
-      {{ role_form.role_name }}
-      {{ role_form.slots }}
-      <button class="rounded border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] px-3 py-2">Add</button>
+      <div class="space-y-2">
+        <label class="block text-sm text-white/60">Intitulé</label>
+        {{ role_form.role_name }}
+      </div>
+      <div class="space-y-2">
+        <label class="block text-sm text-white/60">Places</label>
+        {{ role_form.slots }}
+      </div>
+      <button class="sm:col-span-2 justify-self-end rounded border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] px-4 py-2 text-sm">
+        Ajouter
+      </button>
     </form>
-    <p class="text-xs text-white/50 mt-2">Missing slots are created automatically.</p>
+    <p class="text-xs text-white/40">Les places manquantes sont créées automatiquement.</p>
   </div>
   {% endif %}
 
-  {% for role, slots in slots_by_role.items %}
-  <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-    <div class="font-medium mb-3">{{ role }}</div>
-    <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-      {% for s in slots %}
-      <form method="post" action="{% url 'role_slot_update' s.pk %}" class="rounded-xl bg-white/5 border border-white/10 p-3">
-        {% csrf_token %}
-        <div class="text-xs text-white/60 mb-2">Slot #{{ s.index }}</div>
-        <select name="user" class="w-full bg-black/40 border border-white/15 rounded px-2 py-1 mb-2">
-          <option value="">— free —</option>
-          {% for u in request.user.__class__.objects.all %}
-          <option value="{{ u.id }}" {% if s.user_id == u.id %}selected{% endif %}>{{ u.username }}</option>
-          {% for u in all_users %}
-          <option value="{{ u.pk }}" {% if s.user_id == u.pk %}selected{% endif %}>{{ u.get_username }}</option>
-          {% endfor %}
-        </select>
-        <select name="status" class="w-full bg-black/40 border border-white/15 rounded px-2 py-1 mb-3">
-          <option value="open" {% if s.status == 'open' %}selected{% endif %}>Free</option>
-          <option value="assigned" {% if s.status == 'assigned' %}selected{% endif %}>Assigned</option>
-          <option value="confirmed" {% if s.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
-        </select>
-        <button class="w-full rounded border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] px-3 py-1.5">Save</button>
-      </form>
-      {% endfor %}
-    </div>
+  <div class="space-y-6">
+    {% for role, slots in slots_by_role.items %}
+    <section class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-lg font-medium">{{ role }}</h2>
+        <span class="text-xs text-white/40 uppercase tracking-[0.2em]">{{ slots|length }} place{{ slots|length|pluralize:"s" }}</span>
+      </div>
+      <div class="grid gap-3 md:grid-cols-2">
+        {% for slot in slots %}
+        <div class="rounded-xl bg-white/5 border border-white/10 p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="text-sm text-white/70">Place n°{{ slot.index }}</div>
+            <span class="text-xs uppercase tracking-[0.2em] px-2 py-1 rounded-full {{ slot.badge_class }}">
+              {{ slot.get_status_display }}
+            </span>
+          </div>
+          {% if can_edit %}
+          <form method="post" action="{% url 'role_slot_update' slot.pk %}" class="space-y-3">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+            {{ slot.form.non_field_errors }}
+            <label class="block text-sm">
+              <span class="text-white/50">Utilisateur</span>
+              <div class="mt-1">{{ slot.form.user }}</div>
+            </label>
+            <label class="block text-sm">
+              <span class="text-white/50">Statut</span>
+              <div class="mt-1">{{ slot.form.status }}</div>
+            </label>
+            <div class="flex justify-end">
+              <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1.5 text-sm">
+                Enregistrer
+              </button>
+            </div>
+          </form>
+          {% else %}
+          <div class="text-sm text-white/60">
+            {% if slot.user %}
+            Assigné à <span class="font-medium text-white">{{ slot.user.get_username }}</span>
+            {% else %}
+            Aucune affectation pour le moment.
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% empty %}
+    <p class="text-white/60">Aucun rôle n'est encore défini pour ce vaisseau.</p>
+    {% endfor %}
   </div>
-  {% empty %}
-  <p class="text-white/60">No roles defined for this ship.</p>
-  {% endfor %}
-
 </section>
 {% endblock %}

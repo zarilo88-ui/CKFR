@@ -1,26 +1,32 @@
-@@ -2,46 +2,47 @@
+<!DOCTYPE html>
 <html lang="fr" class="h-full">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}C.K.F.R{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <meta name="color-scheme" content="dark">
+  <meta name="color-scheme" content="dark" />
   <style>
     :root { color-scheme: dark; }
-    .noise { position: fixed; inset: -50px; background-image: radial-gradient(white 1px, transparent 1px);
-      background-size: 3px 3px; opacity: .02; pointer-events: none; filter: contrast(120%); }
+    .noise {
+      position: fixed;
+      inset: -50px;
+      background-image: radial-gradient(white 1px, transparent 1px);
+      background-size: 3px 3px;
+      opacity: .02;
+      pointer-events: none;
+      filter: contrast(120%);
+    }
   </style>
 </head>
 <body class="h-full bg-black text-white">
-  <div class="noise"></div>
+  <div class="noise" aria-hidden="true"></div>
 
   {% if user.is_authenticated %}
-  <!-- Header (visible UNIQUEMENT après connexion) -->
   <header class="border-b border-white/10 bg-black/60 backdrop-blur sticky top-0 z-40">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
       <a href="{% url 'ships_list' %}" class="flex items-center gap-8 group">
-        <div class="font-semibold tracking-wide">C.K.F.R</div>
+        <span class="font-semibold tracking-wide">C.K.F.R</span>
       </a>
       <nav class="flex items-center gap-8 text-sm">
         <a href="{% url 'ships_list' %}" class="text-white/80 hover:text-white">Vaisseaux</a>
@@ -40,7 +46,7 @@
   <footer class="border-t border-white/10 text-xs text-white/50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between">
       <span>© C.K.F.R</span>
-      <span>Pirates of the Verse · noir & blanc</span>
+      <span>Pirates of the Verse · noir &amp; blanc</span>
     </div>
   </footer>
   {% endif %}
