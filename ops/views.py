@@ -38,7 +38,7 @@ def ship_detail(request, pk):
         if role_form.is_valid():
             rt = role_form.save(commit=False)
             rt.ship = ship
-            rt.save()  # signals create missing RoleSlots
+            rt.save()
             messages.success(request, "Rôle ajouté au vaisseau.")
             return redirect("ship_detail", pk=ship.pk)
 
