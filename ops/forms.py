@@ -1,19 +1,23 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Operation, OperationShip, Assignment
+from .models import Ship, ShipRoleTemplate, RoleSlot
 
-class OperationForm(forms.ModelForm):
+class ShipForm(forms.ModelForm):
     class Meta:
-        model = Operation
-        fields = ("title","start","description")
+        model = Ship
+        fields = ("name", "min_crew", "max_crew")
 
-class OperationShipForm(forms.ModelForm):
+class ShipRoleTemplateForm(forms.ModelForm):
     class Meta:
-        model = OperationShip
-        fields = ("ship","notes")
+        model = ShipRoleTemplate
+        fields = ("role_name", "slots")
 
-class AssignmentForm(forms.ModelForm):
-    user = forms.ModelChoiceField(queryset=User.objects.order_by("username"), required=False)
+class RoleSlotForm(forms.ModelForm):
+    user = forms.ModelChoiceField(
+        label="Utilisateur",
+        queryset=User.objects.order_by("username"),
+        required=False
+    )
     class Meta:
-        model = Assignment
-        fields = ("user","status")
+        model = RoleSlot
+        fields = ("user", "status")

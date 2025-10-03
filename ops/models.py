@@ -1,49 +1,52 @@
-# ops/models.py (ajoute Meta pour chaque modèle)
+from django.db import models
+from django.contrib.auth.models import User
 
 class Ship(models.Model):
-    name = models.CharField(max_length=80, unique=True)
-    min_crew = models.PositiveSmallIntegerField(default=1)
-    max_crew = models.PositiveSmallIntegerField()
-    def __str__(self): return self.name
+    name = models.CharField("Nom du vaisseau", max_length=80, unique=True)
+    min_crew = models.PositiveSmallIntegerField("Équipage minimum", default=1)
+    max_crew = models.PositiveSmallIntegerField("Équipage maximum")
+
+    def __str__(self):
+        return self.name
+
     class Meta:
         verbose_name = "Vaisseau"
         verbose_name_plural = "Vaisseaux"
 
 class ShipRoleTemplate(models.Model):
-    ship = models.ForeignKey(Ship, on_delete=models.CASCADE, related_name="roles")
-    role_name = models.CharField(max_length=40)
-    slots = models.PositiveSmallIntegerField(default=1)
+    ship = models.ForeignKey(Ship, on_delete=models.CASCADE, related_name="role_templates", verbose_name="Vaisseau")
+    role_name = models.CharField("Rôle", max_length=40)
+    slots = models.PositiveSmallIntegerField("Nombre de places", default=1)
+
     class Meta:
         unique_together = ("ship", "role_name")
         verbose_name = "Rôle (modèle)"
         verbose_name_plural = "Rôles (modèles)"
-    def __str__(self): return f"{self.ship} · {self.role_name} x{self.slots}"
 
-class Operation(models.Model):
-    title = models.CharField(max_length=120)
-    start = models.DateTimeField()
-    description = models.TextField(blank=True)
-    def __str__(self): return f"{self.title} @ {self.start:%Y-%m-%d %H:%M}"
-    class Meta:
-        verbose_name = "Opération"
-        verbose_name_plural = "Opérations"
+    def __str__(self):
+        return f"{self.ship} · {self.role_name} ×{self.slots}"
 
-class OperationShip(models.Model):
-    operation = models.ForeignKey(Operation, on_delete=models.CASCADE, related_name="ships")
-    ship = models.ForeignKey(Ship, on_delete=models.PROTECT)
-    notes = models.TextField(blank=True)
-    def __str__(self): return f"{self.operation} · {self.ship}"
-    class Meta:
-        verbose_name = "Vaisseau d’opération"
-        verbose_name_plural = "Vaisseaux d’opération"
+class RoleSlot(models.Model):
+    """
+    A concrete slot for a given role on a ship.
+    Example: Cutlass Black · Gunner · slot #1 assigned to user X.
+    """
+    ship = models.ForeignKey(Ship, on_delete=models.CASCADE, related_name="role_slots", verbose_name="Vaisseau")
+    role_name = models.CharField("Rôle", max_length=40)
+    index = models.PositiveSmallIntegerField("N° de place", default=1)  # 1..N within the role
+    user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, verbose_name="Utilisateur")
+    status = models.CharField(
+        "Statut",
+        max_length=16,
+        default="open",
+        choices=[("open", "Libre"), ("assigned", "Assigné"), ("confirmed", "Confirmé")],
+    )
 
-class Assignment(models.Model):
-    operation_ship = models.ForeignKey(OperationShip, on_delete=models.CASCADE, related_name="assignments")
-    role_name = models.CharField(max_length=40)
-    user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True)
-    status = models.CharField(max_length=16, default="open",
-                              choices=[("open","Ouvert"),("assigned","Assigné"),("confirmed","Confirmé")])
-    def __str__(self): return f"{self.operation_ship} · {self.role_name} → {self.user or 'libre'}"
     class Meta:
-        verbose_name = "Affectation"
-        verbose_name_plural = "Affectations"
+        unique_together = ("ship", "role_name", "index")
+        verbose_name = "Place de rôle"
+        verbose_name_plural = "Places de rôle"
+
+    def __str__(self):
+        who = self.user.username if self.user else "libre"
+        return f"{self.ship} · {self.role_name} #{self.index} → {who}"

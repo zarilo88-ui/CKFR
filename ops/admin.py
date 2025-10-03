@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Ship, ShipRoleTemplate, Operation, OperationShip, Assignment
+from .models import Ship, ShipRoleTemplate, RoleSlot
 
 class ShipRoleTemplateInline(admin.TabularInline):
     model = ShipRoleTemplate
@@ -7,21 +7,12 @@ class ShipRoleTemplateInline(admin.TabularInline):
 
 @admin.register(Ship)
 class ShipAdmin(admin.ModelAdmin):
-    list_display = ("name","min_crew","max_crew")
+    list_display = ("name", "min_crew", "max_crew")
+    search_fields = ("name",)
     inlines = [ShipRoleTemplateInline]
 
-class AssignmentInline(admin.TabularInline):
-    model = Assignment
-    extra = 0
-    readonly_fields = ("role_name",)
-
-@admin.register(Operation)
-class OperationAdmin(admin.ModelAdmin):
-    list_display = ("title","start")
-    search_fields = ("title",)
-    date_hierarchy = "start"
-
-@admin.register(OperationShip)
-class OperationShipAdmin(admin.ModelAdmin):
-    list_display = ("operation","ship")
-    inlines = [AssignmentInline]
+@admin.register(RoleSlot)
+class RoleSlotAdmin(admin.ModelAdmin):
+    list_display = ("ship", "role_name", "index", "user", "status")
+    list_filter = ("ship", "role_name", "status")
+    search_fields = ("ship__name", "role_name", "user__username")
