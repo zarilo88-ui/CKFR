@@ -5,7 +5,7 @@
   <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
     <h1 class="text-2xl sm:text-3xl font-semibold">Ships</h1>
     <div class="flex flex-wrap gap-2">
-      <a href="?" class="px-3 py-1.5 rounded-full border border-white/15 text-sm {{ not current_cat|yesno:',bg-white/10' }}">All</a>
+      <a href="?" class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if not current_cat %}bg-white/10{% endif %}">All</a>
       {% for c,val in categories %}
       <a href="?cat={{ c }}" class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if current_cat == c %}bg-white/10{% endif %}">
         {{ val }}

@@ -37,8 +37,8 @@
         <div class="text-xs text-white/60 mb-2">Slot #{{ s.index }}</div>
         <select name="user" class="w-full bg-black/40 border border-white/15 rounded px-2 py-1 mb-2">
           <option value="">— free —</option>
-          {% for u in request.user.__class__.objects.all %}
-          <option value="{{ u.id }}" {% if s.user_id == u.id %}selected{% endif %}>{{ u.username }}</option>
+          {% for u in all_users %}
+          <option value="{{ u.pk }}" {% if s.user_id == u.pk %}selected{% endif %}>{{ u.get_username }}</option>
           {% endfor %}
         </select>
         <select name="status" class="w-full bg-black/40 border border-white/15 rounded px-2 py-1 mb-3">

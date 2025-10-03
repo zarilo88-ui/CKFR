@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
 from .models import Ship, RoleSlot
 from .forms import RoleSlotForm, ShipRoleTemplateForm
+from .utils import get_ordered_user_queryset
 
 def is_planner(user):
     return user.is_superuser or user.groups.filter(name__in=["Planner", "Administrateur", "Planificateur"]).exists()
@@ -42,8 +43,20 @@ def ship_detail(request, pk):
             messages.success(request, "Rôle ajouté au vaisseau.")
             return redirect("ship_detail", pk=ship.pk)
 
-    return render(request, "ops/ship_detail.html",
-                  {"ship": ship, "slots_by_role": slots_by_role, "role_form": role_form, "can_edit": can_edit})
+    users_qs = get_ordered_user_queryset()
+    users = users_qs if can_edit else users_qs.none()
+
+    return render(
+        request,
+        "ops/ship_detail.html",
+        {
+            "ship": ship,
+            "slots_by_role": slots_by_role,
+            "role_form": role_form,
+            "can_edit": can_edit,
+            "all_users": users,
+        },
+    )
 
 @login_required
 @user_passes_test(is_planner)
