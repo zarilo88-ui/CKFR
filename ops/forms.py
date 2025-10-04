@@ -43,7 +43,7 @@ class ShipRoleTemplateForm(forms.ModelForm):
 
 class RoleSlotForm(forms.ModelForm):
     user = forms.ModelChoiceField(
-@@ -40,55 +56,155 @@ class RoleSlotForm(forms.ModelForm):
+@@ -40,55 +56,153 @@ class RoleSlotForm(forms.ModelForm):
                 attrs={
                     "class": "w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2",
                 }
@@ -93,11 +93,6 @@ class OperationForm(forms.ModelForm):
 
 
 class HighlightedShipForm(forms.Form):
-    ROLE_METADATA = [
-        (role, label, ROLE_PLACEHOLDERS.get(role, ""))
-        for role, label in OperationHighlightedShip.ROLE_CHOICES
-    ]
-
     ship = forms.ModelChoiceField(
         label="Vaisseau",
         queryset=Ship.objects.order_by("name"),
@@ -112,8 +107,10 @@ class HighlightedShipForm(forms.Form):
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {}) or {}
         super().__init__(*args, **kwargs)
+        role_choices = getattr(OperationHighlightedShip, "ROLE_CHOICES", ())
         self.role_metadata = []
-        for role, label, placeholder in self.ROLE_METADATA:
+        for role, label in role_choices:
+            placeholder = ROLE_PLACEHOLDERS.get(role, "")
             field_name = f"{role}_entries"
             if field_name not in self.fields:
                 self.fields[field_name] = forms.CharField(
@@ -180,7 +177,8 @@ class HighlightedShipForm(forms.Form):
 
         ship = cleaned_data.get("ship")
         total_assigned = 0
-        for role, _, _ in self.ROLE_METADATA:
+        for meta in self.role_metadata:
+            role = meta["role"]
             field_name = f"{role}_entries"
             raw_value = cleaned_data.get(field_name, "")
             names = self._normalize_initial_value(raw_value)
