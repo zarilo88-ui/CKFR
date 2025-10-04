@@ -28,7 +28,7 @@ class Ship(models.Model):
 
     @property
     def crew_range_display(self) -> str:
-        """Return a human readable crew range."""
+        """Return a human-readable crew range for display templates."""
 
         if self.min_crew == self.max_crew:
             return str(self.min_crew)
@@ -59,7 +59,14 @@ class ShipRoleTemplate(models.Model):
 
 
 class RoleSlot(models.Model):
-@@ -60,26 +68,26 @@ class RoleSlot(models.Model):
+    """Represents an individual assignable seat for a given ship role."""
+
+    STATUS_CHOICES = [
+        ("open", "Libre"),
+        ("assigned", "Assigné"),
+        ("confirmed", "Confirmé"),
+    ]
+
     ship = models.ForeignKey(
         Ship,
         on_delete=models.CASCADE,
@@ -76,7 +83,12 @@ class RoleSlot(models.Model):
         related_name="role_slots",
         verbose_name="Utilisateur",
     )
-    status = models.CharField("Statut", max_length=16, default="open", choices=STATUS_CHOICES)
+    status = models.CharField(
+        "Statut",
+        max_length=16,
+        default="open",
+        choices=STATUS_CHOICES,
+    )
 
     class Meta:
         unique_together = ("ship", "role_name", "index")
