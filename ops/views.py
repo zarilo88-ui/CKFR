@@ -251,7 +251,7 @@ def _match_filter_category(role: str | None) -> tuple[str | None, str | None]:
     return None, None
 
 
-def _fallback_filter_category(ship: Ship) -> tuple[str | None, str | None]:
+ def _fallback_filter_category(ship: Ship) -> tuple[str | None, str | None]:
     """Provide a best-effort category based on the legacy ship category."""
 
     return CATEGORY_FALLBACK.get(ship.category, (None, None))
@@ -317,17 +317,20 @@ def ships_list(request):
 
         ships.append(ship)
 
+    display_categories = []
+    for cat_slug, cat_data in FILTER_TREE.items():
+        subcategories = [
+            {"slug": sub_slug, "label": sub_data["label"]}
+            for sub_slug, sub_data in cat_data["subcategories"].items()
+        ]
 
-
-
-            "label": cat_data["label"],
-            "subcategories": [
-                {"slug": sub_slug, "label": sub_data["label"]}
-                for sub_slug, sub_data in cat_data["subcategories"].items()
-            ],
-        }
-        for cat_slug, cat_data in FILTER_TREE.items()
-    ]
+        display_categories.append(
+            {
+                "slug": cat_slug,
+                "label": cat_data["label"],
+                "subcategories": subcategories,
+            }
+        )
 
     current_category = next(
         (item for item in display_categories if item["slug"] == category),
