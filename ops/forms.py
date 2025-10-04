@@ -27,7 +27,11 @@ class ShipRoleTemplateForm(forms.ModelForm):
 
 class RoleSlotForm(forms.ModelForm):
     user = forms.ModelChoiceField(
-@@ -35,25 +35,60 @@ class RoleSlotForm(forms.ModelForm):
+        label="Utilisateur",
+        queryset=get_user_model().objects.none(),
+        required=False,
+    )
+
     class Meta:
         model = RoleSlot
         fields = ("user", "status")
