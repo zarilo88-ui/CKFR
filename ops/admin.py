@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Ship, ShipRoleTemplate, RoleSlot
+from .models import Operation, Ship, ShipRoleTemplate, RoleSlot
 from .utils import resolve_username_lookup
 
 class ShipRoleTemplateInline(admin.TabularInline):
@@ -31,3 +31,11 @@ class RoleSlotAdmin(admin.ModelAdmin):
     def get_search_fields(self, request):
         _, identifier = resolve_username_lookup()
         return ("ship__name", "role_name", f"user__{identifier}")
+
+
+@admin.register(Operation)
+class OperationAdmin(admin.ModelAdmin):
+    list_display = ("title", "is_active", "highlighted_ship", "updated_at")
+    list_filter = ("is_active",)
+    search_fields = ("title",)
+    ordering = ("-is_active", "-updated_at")

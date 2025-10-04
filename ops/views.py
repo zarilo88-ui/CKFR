@@ -8,7 +8,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from .forms import RoleSlotForm, ShipRoleTemplateForm
-from .models import RoleSlot, Ship
+from .models import Operation, RoleSlot, Ship
+from .permissions import can_manage_ops
 from .services import (
     group_ships_by_category,
     prepare_ship_for_display,
@@ -273,14 +274,24 @@ def _classify_ship(ship: Ship) -> tuple[str | None, str | None]:
     return cat_slug, sub_slug
 
 
-def is_planner(user):
-    """Return True if the user can manage ship allocations."""
-    return user.is_superuser or user.groups.filter(
-        name__in=["Planner", "Administrateur", "Planificateur"]
-    ).exists()
+@auth_decorators.login_required
+def operation_overview(request):
+    """Display the current operation and its highlighted ship."""
+
+    operation_qs = Operation.objects.select_related("highlighted_ship")
+    operation = operation_qs.filter(is_active=True).first()
+    if operation is None:
+        operation = operation_qs.order_by("-updated_at").first()
+
+    context = {
+        "operation": operation,
+        "can_manage_operations": can_manage_ops(request.user),
+    }
+    return render(request, "ops/operation_overview.html", context)
 
 
 @auth_decorators.login_required
+@auth_decorators.user_passes_test(can_manage_ops)
 def ships_list(request):
     """Display the list of ships, optionally filtered by category."""
 
@@ -306,9 +317,9 @@ def ships_list(request):
 
         ships.append(ship)
 
-    display_categories = [
-        {
-            "slug": cat_slug,
+
+
+
             "label": cat_data["label"],
             "subcategories": [
                 {"slug": sub_slug, "label": sub_data["label"]}
@@ -334,10 +345,11 @@ def ships_list(request):
 
 
 @auth_decorators.login_required
+@auth_decorators.user_passes_test(can_manage_ops)
 def ships_allocation(request):
     """Show all ships with their crew allocations."""
 
-    can_edit = is_planner(request.user)
+    can_edit = can_manage_ops(request.user)
     user_queryset = RoleSlotForm.default_user_queryset() if can_edit else None
 
     ships_queryset = ships_with_slots().order_by("category", "name")
@@ -356,10 +368,11 @@ def ships_allocation(request):
 
 
 @auth_decorators.login_required
+@auth_decorators.user_passes_test(can_manage_ops)
 def ship_detail(request, pk):
     """Display the details of a single ship and manage its role templates."""
     ship = get_object_or_404(ships_with_slots(), pk=pk)
-    can_edit = is_planner(request.user)
+    can_edit = can_manage_ops(request.user)
     user_queryset = RoleSlotForm.default_user_queryset() if can_edit else None
 
     ship = prepare_ship_for_display(
@@ -391,7 +404,7 @@ def ship_detail(request, pk):
 
 
 @auth_decorators.login_required
-@auth_decorators.user_passes_test(is_planner)
+@auth_decorators.user_passes_test(can_manage_ops)
 def role_slot_update(request, pk):
     """Update a single role slot assignment."""
     slot = get_object_or_404(RoleSlot, pk=pk)

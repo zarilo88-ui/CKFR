@@ -68,7 +68,8 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-            ]
+                "ops.context_processors.permissions_flags",
+            ],
         },
     }
 ]
@@ -95,9 +96,9 @@ STORAGES = {
 # Auth redirects
 LOGIN_URL = "/"
 if DEBUG:
-    LOGIN_REDIRECT_URL = "/ships/"
+    LOGIN_REDIRECT_URL = "/operation/"
 else:
-    LOGIN_REDIRECT_URL = "https://www.ckfr.fr/ships/"
+    LOGIN_REDIRECT_URL = "https://www.ckfr.fr/operation/"
     
 # Security (prod only)
 SECURE_SSL_REDIRECT = not DEBUG

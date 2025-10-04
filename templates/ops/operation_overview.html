@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Opération actuelle · C.K.F.R{% endblock %}
+{% block body %}
+<div class="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
+  <header class="flex flex-col gap-2">
+    <h1 class="text-3xl font-semibold">Opération actuelle</h1>
+    <p class="text-white/70 text-sm sm:text-base">
+      Retrouvez ici le briefing de l’opération en cours et le vaisseau sélectionné par le commandement.
+    </p>
+  </header>
+
+  {% if operation %}
+  <section class="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2">
+      <h2 class="text-2xl font-semibold">{{ operation.title }}</h2>
+      <p class="text-xs uppercase tracking-wide text-white/50">Mis à jour le {{ operation.updated_at|date:"d/m/Y H:i" }}</p>
+    </div>
+    {% if operation.description %}
+    <p class="text-white/80 leading-relaxed whitespace-pre-line">{{ operation.description }}</p>
+    {% endif %}
+    {% if operation.highlighted_ship %}
+    <div class="rounded-xl border border-indigo-500/40 bg-indigo-500/10 p-4">
+      <h3 class="text-lg font-medium text-indigo-100">Vaisseau mis en avant</h3>
+      <div class="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <p class="text-xl font-semibold">{{ operation.highlighted_ship.name }}</p>
+          <p class="text-sm text-white/70">{{ operation.highlighted_ship.manufacturer }} · {{ operation.highlighted_ship.role }}</p>
+        </div>
+        <div class="text-sm text-white/60">
+          Équipage : {{ operation.highlighted_ship.crew_range_display }}<br />
+          Catégorie : {{ operation.highlighted_ship.get_category_display }}
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <p class="text-white/70">Aucun vaisseau n’a encore été sélectionné pour cette opération.</p>
+    {% endif %}
+  </section>
+  {% else %}
+  <section class="rounded-2xl border border-white/10 bg-white/5 p-6">
+    <p class="text-white/70">Aucune opération n’a encore été configurée. Revenez plus tard ou contactez un administrateur.</p>
+  </section>
+  {% endif %}
+
+  {% if can_manage_operations %}
+  <div class="text-right">
+    <a href="/admin/ops/operation/" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-sm font-medium">
+      Gérer les opérations
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

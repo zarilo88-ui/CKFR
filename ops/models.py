@@ -2,6 +2,35 @@ from django.conf import settings
 from django.db import models
 
 
+class Operation(models.Model):
+    """Represents a planned operation and its highlighted ship."""
+
+    title = models.CharField("Nom de l'opération", max_length=120)
+    description = models.TextField("Description", blank=True)
+    is_active = models.BooleanField("Opération actuelle", default=False)
+    highlighted_ship = models.ForeignKey(
+        "Ship",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="highlighted_in_operations",
+        verbose_name="Vaisseau mis en avant",
+    )
+    updated_at = models.DateTimeField("Mise à jour", auto_now=True)
+
+    class Meta:
+        verbose_name = "Opération"
+        verbose_name_plural = "Opérations"
+
+    def save(self, *args, **kwargs):
+        if self.is_active:
+            Operation.objects.exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title
+
+
 class Ship(models.Model):
     name = models.CharField("Nom du vaisseau", max_length=120, unique=True)
     manufacturer = models.CharField("Constructeur", max_length=80, blank=True)
