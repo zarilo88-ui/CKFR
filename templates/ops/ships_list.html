@@ -68,3 +68,12 @@
         <div class="flex justify-between gap-2">
           <dt class="text-white/50">Cargaison</dt>
           <dd class="text-right text-white/70">{{ ship.cargo_capacity|default:"-" }}</dd>
+        </div>
+      </dl>
+    </a>
+    {% empty %}
+    <p class="text-white/60">Aucun vaisseau pour le moment.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
