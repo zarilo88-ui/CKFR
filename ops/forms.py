@@ -10,6 +10,7 @@ from .models import (
     RoleSlot,
     Ship,
 )
+from .utils import get_ordered_user_queryset
 
 
 ROLE_PLACEHOLDERS = {
@@ -18,7 +19,6 @@ ROLE_PLACEHOLDERS = {
     "pilot": "Nom du pilote",
     "torpedo": "Nom de l’opérateur torpille",
 }
-from .utils import get_ordered_user_queryset
 
 
 class ShipRoleTemplateForm(forms.ModelForm):
@@ -43,7 +43,10 @@ class ShipRoleTemplateForm(forms.ModelForm):
 
 class RoleSlotForm(forms.ModelForm):
     user = forms.ModelChoiceField(
-@@ -40,55 +56,153 @@ class RoleSlotForm(forms.ModelForm):
+        label="Utilisateur",
+        queryset=get_user_model().objects.none(),
+        required=False,
+@@ -40,55 +56,164 @@ class RoleSlotForm(forms.ModelForm):
                 attrs={
                     "class": "w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2",
                 }
@@ -105,33 +108,36 @@ class HighlightedShipForm(forms.Form):
     )
 
     def __init__(self, *args, **kwargs):
-        initial = kwargs.get("initial", {}) or {}
+        initial = kwargs.get("initial") or {}
         super().__init__(*args, **kwargs)
-        role_choices = getattr(OperationHighlightedShip, "ROLE_CHOICES", ())
-        self.role_metadata = []
-        for role, label in role_choices:
-            placeholder = ROLE_PLACEHOLDERS.get(role, "")
-            field_name = f"{role}_entries"
-            if field_name not in self.fields:
-                self.fields[field_name] = forms.CharField(
-                    required=False,
-                    widget=forms.HiddenInput(),
-                )
-            field_name = f"{role}_entries"
-            field = self.fields[field_name]
-            field.widget.attrs.update(
-                {
-                    "data-role-store": role,
-                }
-            )
 
+        self.role_metadata: list[dict[str, object]] = []
+        for role, label in self._role_choices():
+            field_name = self._role_field_name(role)
+            field = self.fields.get(field_name)
+            if field is None:
+                field = forms.CharField(required=False, widget=forms.HiddenInput())
+                self.fields[field_name] = field
+
+            placeholder = ROLE_PLACEHOLDERS.get(role, "")
             if self.is_bound:
                 raw_value = self.data.get(self.add_prefix(field_name), "")
             else:
-                raw_value = initial.get(field_name) or initial.get(f"{role}_names") or []
+                raw_value = (
+                    initial.get(field_name)
+                    or initial.get(f"{role}_names")
+                    or []
+                )
+
             values = self._normalize_initial_value(raw_value)
-            field.initial = json.dumps(values, ensure_ascii=False)
-            field.widget.attrs["data-initial"] = json.dumps(values, ensure_ascii=False)
+            serialized = json.dumps(values, ensure_ascii=False)
+            field.initial = serialized
+            field.widget.attrs.update(
+                {
+                    "data-role-store": role,
+                    "data-initial": serialized,
+                }
+            )
 
             self.role_metadata.append(
                 {
@@ -152,6 +158,14 @@ class HighlightedShipForm(forms.Form):
                     "data-delete-field": "true",
                 }
             )
+
+    @staticmethod
+    def _role_field_name(role: str) -> str:
+        return f"{role}_entries"
+
+    @staticmethod
+    def _role_choices():
+        return getattr(OperationHighlightedShip, "ROLE_CHOICES", ())
 
     def _normalize_initial_value(self, value):
         if isinstance(value, (list, tuple)):
@@ -179,7 +193,7 @@ class HighlightedShipForm(forms.Form):
         total_assigned = 0
         for meta in self.role_metadata:
             role = meta["role"]
-            field_name = f"{role}_entries"
+            field_name = self._role_field_name(role)
             raw_value = cleaned_data.get(field_name, "")
             names = self._normalize_initial_value(raw_value)
             cleaned_data[field_name] = names
