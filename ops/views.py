@@ -251,7 +251,7 @@ def _match_filter_category(role: str | None) -> tuple[str | None, str | None]:
     return None, None
 
 
- def _fallback_filter_category(ship: Ship) -> tuple[str | None, str | None]:
+def _fallback_filter_category(ship: Ship) -> tuple[str | None, str | None]:
     """Provide a best-effort category based on the legacy ship category."""
 
     return CATEGORY_FALLBACK.get(ship.category, (None, None))
@@ -265,7 +265,9 @@ def _classify_ship(ship: Ship) -> tuple[str | None, str | None]:
         cat_slug, sub_slug = _fallback_filter_category(ship)
 
     ship.filter_category = cat_slug
-    ship.filter_category_label = FILTER_TREE.get(cat_slug, {}).get("label") if cat_slug else None
+    ship.filter_category_label = (
+        FILTER_TREE.get(cat_slug, {}).get("label") if cat_slug else None
+    )
     ship.filter_subcategory = sub_slug
     if sub_slug and sub_slug in SUBCATEGORY_LOOKUP:
         ship.filter_subcategory_label = SUBCATEGORY_LOOKUP[sub_slug]["label"]
