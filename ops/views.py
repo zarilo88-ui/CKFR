@@ -1,5 +1,7 @@
 """Views for the operations module."""
 
+from collections import OrderedDict
+
 from django.contrib import messages
 from django.contrib.auth import decorators as auth_decorators
 from django.shortcuts import get_object_or_404, redirect, render
@@ -14,6 +16,263 @@ from .services import (
 )
 
 
+FILTER_TREE = OrderedDict(
+    (
+        (
+            "military",
+            {
+                "label": "Militaire",
+                "subcategories": OrderedDict(
+                    (
+                        (
+                            "chasseur",
+                            {
+                                "label": "Chasseur",
+                                "keywords": (
+                                    "fighter",
+                                    "stealth",
+                                    "combat",
+                                    "interceptor",
+                                    "racing",
+                                    "patrol",
+                                    "escort",
+                                    "pursuit",
+                                ),
+                            },
+                        ),
+                        (
+                            "capitaux",
+                            {
+                                "label": "Capitaux",
+                                "keywords": (
+                                    "destroyer",
+                                    "frigate",
+                                    "corvette",
+                                    "carrier",
+                                    "dread",
+                                    "capital",
+                                    "battle",
+                                    "battleship",
+                                ),
+                            },
+                        ),
+                        (
+                            "gunship",
+                            {
+                                "label": "Gun Ship",
+                                "keywords": ("gunship",),
+                            },
+                        ),
+                        (
+                            "bomber",
+                            {
+                                "label": "Bomber",
+                                "keywords": ("bomber",),
+                            },
+                        ),
+                        (
+                            "torpilleur",
+                            {
+                                "label": "Torpilleur",
+                                "keywords": ("torpedo", "torp"),
+                            },
+                        ),
+                        (
+                            "interdicteur",
+                            {
+                                "label": "Interdicteur",
+                                "keywords": (
+                                    "interdict",
+                                    "interdiction",
+                                    "minelayer",
+                                    "quantum enforcement",
+                                    "quantum damp",
+                                ),
+                            },
+                        ),
+                        (
+                            "dropship",
+                            {
+                                "label": "Drop Ship",
+                                "keywords": (
+                                    "dropship",
+                                    "drop ship",
+                                    "boarding",
+                                    "troop",
+                                    "personnel",
+                                    "assault",
+                                ),
+                            },
+                        ),
+                    )
+                ),
+            },
+        ),
+        (
+            "industrial",
+            {
+                "label": "Industriel",
+                "subcategories": OrderedDict(
+                    (
+                        (
+                            "salvage",
+                            {
+                                "label": "Salvage",
+                                "keywords": ("salvage", "scrap"),
+                            },
+                        ),
+                        (
+                            "minage",
+                            {
+                                "label": "Minage",
+                                "keywords": (
+                                    "mining",
+                                    "prospecting",
+                                    "refinery",
+                                ),
+                            },
+                        ),
+                        (
+                            "hauling",
+                            {
+                                "label": "Hauling",
+                                "keywords": (
+                                    "freight",
+                                    "cargo",
+                                    "hauling",
+                                    "transport",
+                                    "courier",
+                                    "logistics",
+                                    "delivery",
+                                    "carrier",
+                                    "merchant",
+                                    "mercantile",
+                                    "trader",
+                                    "commerce",
+                                ),
+                            },
+                        ),
+                    )
+                ),
+            },
+        ),
+        (
+            "support",
+            {
+                "label": "Support",
+                "subcategories": OrderedDict(
+                    (
+                        (
+                            "medical",
+                            {
+                                "label": "Medical",
+                                "keywords": (
+                                    "medical",
+                                    "rescue",
+                                    "hospital",
+                                    "med",
+                                    "triage",
+                                ),
+                            },
+                        ),
+                        (
+                            "refuel",
+                            {
+                                "label": "Refuel",
+                                "keywords": ("refuel", "fuel"),
+                            },
+                        ),
+                        (
+                            "repair",
+                            {
+                                "label": "Repair",
+                                "keywords": (
+                                    "repair",
+                                    "service",
+                                    "tow",
+                                    "tractor",
+                                ),
+                            },
+                        ),
+                        (
+                            "exploration",
+                            {
+                                "label": "Exploration",
+                                "keywords": (
+                                    "explor",
+                                    "expedition",
+                                    "pathfinder",
+                                    "science",
+                                    "survey",
+                                    "touring",
+                                    "recon",
+                                    "scout",
+                                    "reporting",
+                                    "data",
+                                    "observation",
+                                ),
+                            },
+                        ),
+                    )
+                ),
+            },
+        ),
+    )
+)
+
+CATEGORY_FALLBACK = {
+    "LF": ("military", "chasseur"),
+    "MF": ("military", "chasseur"),
+    "HF": ("military", "chasseur"),
+    "CAP": ("military", "capitaux"),
+    "MR": ("support", "exploration"),
+}
+
+SUBCATEGORY_LOOKUP = {
+    sub_slug: {
+        "category": cat_slug,
+        "label": sub_data["label"],
+        "keywords": sub_data["keywords"],
+    }
+    for cat_slug, cat_data in FILTER_TREE.items()
+    for sub_slug, sub_data in cat_data["subcategories"].items()
+}
+
+
+def _match_filter_category(role: str | None) -> tuple[str | None, str | None]:
+    """Return the filter category/subcategory slugs matching the given role."""
+
+    text = (role or "").lower()
+    for cat_slug, cat_data in FILTER_TREE.items():
+        for sub_slug, sub_data in cat_data["subcategories"].items():
+            if any(keyword in text for keyword in sub_data["keywords"]):
+                return cat_slug, sub_slug
+    return None, None
+
+
+def _fallback_filter_category(ship: Ship) -> tuple[str | None, str | None]:
+    """Provide a best-effort category based on the legacy ship category."""
+
+    return CATEGORY_FALLBACK.get(ship.category, (None, None))
+
+
+def _classify_ship(ship: Ship) -> tuple[str | None, str | None]:
+    """Attach filter metadata to the ship and return the selected slugs."""
+
+    cat_slug, sub_slug = _match_filter_category(ship.role)
+    if not cat_slug:
+        cat_slug, sub_slug = _fallback_filter_category(ship)
+
+    ship.filter_category = cat_slug
+    ship.filter_category_label = FILTER_TREE.get(cat_slug, {}).get("label") if cat_slug else None
+    ship.filter_subcategory = sub_slug
+    if sub_slug and sub_slug in SUBCATEGORY_LOOKUP:
+        ship.filter_subcategory_label = SUBCATEGORY_LOOKUP[sub_slug]["label"]
+    else:
+        ship.filter_subcategory_label = None
+    return cat_slug, sub_slug
+
+
 def is_planner(user):
     """Return True if the user can manage ship allocations."""
     return user.is_superuser or user.groups.filter(
@@ -26,34 +285,50 @@ def ships_list(request):
     """Display the list of ships, optionally filtered by category."""
 
     category = request.GET.get("cat")
-    valid_categories = {code for code, _ in Ship.CATEGORY_CHOICES}
-    if category not in valid_categories:
+    if category not in FILTER_TREE:
         category = None
 
-    ship_type = request.GET.get("type")
-    available_types_qs = (
-        Ship.objects.exclude(role="")
-        .order_by("role")
-        .values_list("role", flat=True)
-        .distinct()
-    )
-    available_types = list(available_types_qs)
-    if ship_type not in available_types:
-        ship_type = None
+    subcategory = request.GET.get("subcat")
+    if not category or subcategory not in SUBCATEGORY_LOOKUP:
+        subcategory = None
+    elif SUBCATEGORY_LOOKUP[subcategory]["category"] != category:
+        subcategory = None
 
-    queryset = Ship.objects.all()
-    if category:
-        queryset = queryset.filter(category=category)
-    if ship_type:
-        queryset = queryset.filter(role=ship_type)
-    ships = queryset.order_by("name")
+    ships_queryset = Ship.objects.all().order_by("name")
+    ships = []
+    for ship in ships_queryset:
+        ship_cat, ship_subcat = _classify_ship(ship)
+
+        if category and ship_cat != category:
+            continue
+        if subcategory and ship_subcat != subcategory:
+            continue
+
+        ships.append(ship)
+
+    display_categories = [
+        {
+            "slug": cat_slug,
+            "label": cat_data["label"],
+            "subcategories": [
+                {"slug": sub_slug, "label": sub_data["label"]}
+                for sub_slug, sub_data in cat_data["subcategories"].items()
+            ],
+        }
+        for cat_slug, cat_data in FILTER_TREE.items()
+    ]
+
+    current_category = next(
+        (item for item in display_categories if item["slug"] == category),
+        None,
+    )
 
     context = {
         "ships": ships,
-        "categories": Ship.CATEGORY_CHOICES,
+        "categories": display_categories,
         "current_cat": category,
-        "ship_types": available_types,
-        "current_type": ship_type,
+        "current_category": current_category,
+        "current_subcat": subcategory,
     }
     return render(request, "ops/ships_list.html", context)
 
@@ -92,6 +367,7 @@ def ship_detail(request, pk):
         can_edit=can_edit,
         user_queryset=user_queryset,
     )
+    _classify_ship(ship)
     slots_by_role = ship.slots_by_role
 
     role_form = ShipRoleTemplateForm()

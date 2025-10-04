@@ -2,48 +2,53 @@
 {% block title %}Vaisseaux · C.K.F.R{% endblock %}
 {% block body %}
 <section class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-  <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
-    <h1 class="text-2xl sm:text-3xl font-semibold">Vaisseaux</h1>
-    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+  <div class="flex flex-col gap-6 mb-6">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <h1 class="text-2xl sm:text-3xl font-semibold">Vaisseaux</h1>
       <div class="flex flex-col gap-2">
-        <span class="text-xs uppercase tracking-[0.2em] text-white/40">Catégorie</span>
+        <span class="text-xs uppercase tracking-[0.2em] text-white/40">Catégorie principale</span>
         <div class="flex flex-wrap gap-2">
           <a
-            href="?{% if current_type %}type={{ current_type|urlencode }}{% endif %}"
+            href="?"
             class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if not current_cat %}bg-white/10{% endif %}"
           >
             Tous
           </a>
-          {% for code, label in categories %}
+          {% for category in categories %}
           <a
-            href="?{% if current_type %}type={{ current_type|urlencode }}&{% endif %}cat={{ code }}"
-            class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if current_cat == code %}bg-white/10{% endif %}"
+            href="?cat={{ category.slug }}"
+            class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if current_cat == category.slug %}bg-white/10{% endif %}"
           >
-            {{ label }}
-          </a>
-          {% endfor %}
-        </div>
-      </div>
-      <div class="flex flex-col gap-2">
-        <span class="text-xs uppercase tracking-[0.2em] text-white/40">Type</span>
-        <div class="flex flex-wrap gap-2">
-          <a
-            href="?{% if current_cat %}cat={{ current_cat }}{% endif %}"
-            class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if not current_type %}bg-white/10{% endif %}"
-          >
-            Tous
-          </a>
-          {% for ship_type in ship_types %}
-          <a
-            href="?{% if current_cat %}cat={{ current_cat }}&{% endif %}type={{ ship_type|urlencode }}"
-            class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if current_type == ship_type %}bg-white/10{% endif %}"
-          >
-            {{ ship_type }}
+            {{ category.label }}
           </a>
           {% endfor %}
         </div>
       </div>
     </div>
+
+    {% if current_category %}
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div class="flex flex-col gap-2">
+        <span class="text-xs uppercase tracking-[0.2em] text-white/40">{{ current_category.label }}</span>
+        <div class="flex flex-wrap gap-2">
+          <a
+            href="?cat={{ current_category.slug }}"
+            class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if not current_subcat %}bg-white/10{% endif %}"
+          >
+            Tous
+          </a>
+          {% for subcategory in current_category.subcategories %}
+          <a
+            href="?cat={{ current_category.slug }}&subcat={{ subcategory.slug }}"
+            class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if current_subcat == subcategory.slug %}bg-white/10{% endif %}"
+          >
+            {{ subcategory.label }}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
   </div>
 
   <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -54,7 +59,18 @@
           <p class="text-[0.7rem] uppercase tracking-[0.2em] text-white/40">{{ ship.manufacturer|default:"Constructeur inconnu" }}</p>
           <h2 class="mt-1 text-base font-semibold group-hover:opacity-90">{{ ship.name }}</h2>
         </div>
-        <span class="px-2 py-0.5 rounded-full bg-white/[0.05] text-[0.65rem] uppercase tracking-[0.2em] text-white/50">{{ ship.get_category_display }}</span>
+        <div class="flex flex-col items-end gap-2">
+          {% if ship.filter_category_label %}
+          <span class="px-2 py-0.5 rounded-full bg-white/[0.05] text-[0.65rem] uppercase tracking-[0.2em] text-white/50">
+            {{ ship.filter_category_label }}
+          </span>
+          {% endif %}
+          {% if ship.filter_subcategory_label %}
+          <span class="px-2 py-0.5 rounded-full border border-white/15 text-[0.65rem] uppercase tracking-[0.2em] text-white/60">
+            {{ ship.filter_subcategory_label }}
+          </span>
+          {% endif %}
+        </div>
       </div>
       <dl class="space-y-1 text-xs text-white/60">
         <div class="flex justify-between gap-2">

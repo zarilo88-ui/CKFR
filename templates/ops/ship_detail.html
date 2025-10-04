@@ -4,26 +4,29 @@
 <section class="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-8">
   <a href="{% url 'ships_list' %}" class="inline-flex items-center text-sm text-white/60 hover:text-white/80">← Retour à la flotte</a>
 
-  <header class="space-y-2">
-    <h1 class="text-3xl sm:text-4xl font-semibold">{{ ship.name }}</h1>
-    <p class="text-white/60 text-sm flex flex-wrap gap-2 items-center">
-      <span class="text-white/50 uppercase tracking-[0.2em] text-[0.65rem]">{{ ship.manufacturer|default:"Constructeur inconnu" }}</span>
-      <span class="px-2 py-0.5 rounded-full border border-white/15 text-[0.65rem] uppercase tracking-[0.2em] text-white/60">{{ ship.get_category_display }}</span>
-    </p>
-    <dl class="grid gap-3 sm:grid-cols-3 text-sm text-white/70">
-      <div>
-        <dt class="text-white/50 uppercase tracking-[0.2em] text-[0.6rem]">Type</dt>
-        <dd class="mt-1">{{ ship.role|default:"Non communiqué" }}</dd>
+  <header class="space-y-4">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div class="space-y-2">
+        <h1 class="text-3xl sm:text-4xl font-semibold">{{ ship.name }}</h1>
+        <p class="text-white/60 text-sm flex flex-wrap gap-2 items-center">
+          <span class="text-white/50 uppercase tracking-[0.2em] text-[0.65rem]">{{ ship.manufacturer|default:"Constructeur inconnu" }}</span>
+          {% if ship.filter_category_label %}
+          <span class="px-2 py-0.5 rounded-full bg-white/[0.05] text-[0.65rem] uppercase tracking-[0.2em] text-white/50">{{ ship.filter_category_label }}</span>
+          {% endif %}
+          {% if ship.filter_subcategory_label %}
+          <span class="px-2 py-0.5 rounded-full border border-white/15 text-[0.65rem] uppercase tracking-[0.2em] text-white/60">{{ ship.filter_subcategory_label }}</span>
+          {% endif %}
+        </p>
       </div>
-      <div>
-        <dt class="text-white/50 uppercase tracking-[0.2em] text-[0.6rem]">Équipage</dt>
-        <dd class="mt-1">{{ ship.crew_range_display }} personne{{ ship.max_crew|pluralize:"s" }}</dd>
+      <div class="flex flex-col items-end gap-2 text-sm text-white/60">
+        <div class="text-white/45 uppercase tracking-[0.2em] text-[0.6rem]">Type</div>
+        <div class="text-white/75">{{ ship.role|default:"Non communiqué" }}</div>
+        <div class="text-white/45 uppercase tracking-[0.2em] text-[0.6rem]">Équipage</div>
+        <div class="text-white/75">{{ ship.crew_range_display }} personne{{ ship.max_crew|pluralize:"s" }}</div>
+        <div class="text-white/45 uppercase tracking-[0.2em] text-[0.6rem]">Cargaison</div>
+        <div class="text-white/75">{{ ship.cargo_capacity|default:"-" }}</div>
       </div>
-      <div>
-        <dt class="text-white/50 uppercase tracking-[0.2em] text-[0.6rem]">Cargaison</dt>
-        <dd class="mt-1">{{ ship.cargo_capacity|default:"-" }}</dd>
-      </div>
-    </dl>
+    </div>
   </header>
 
   {% if can_edit %}
@@ -48,4 +51,54 @@
   {% endif %}
 
   <div class="space-y-6">
-    {% for role, slots in slots_by_role.items %}
+    {% if ship.grouped_slots %}
+    {% for role, slots in ship.grouped_slots %}
+    <section class="rounded-2xl border border-white/10 bg-white/[0.05] p-5 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="text-lg font-medium">{{ role }}</h2>
+        <span class="text-xs text-white/40 uppercase tracking-[0.2em]">{{ slots|length }} place{{ slots|length|pluralize:"s" }}</span>
+      </div>
+      <div class="grid gap-3 md:grid-cols-2">
+        {% for slot in slots %}
+        <div class="rounded-xl border border-white/10 bg-white/10 p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="text-sm text-white/70">Place n°{{ slot.index }}</div>
+            <span class="text-xs uppercase tracking-[0.2em] px-2 py-1 rounded-full {{ slot.badge_class }}">{{ slot.get_status_display }}</span>
+          </div>
+          {% if can_edit %}
+          <form method="post" action="{% url 'role_slot_update' slot.pk %}" class="space-y-3">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+            <div class="space-y-2">
+              <label class="block text-xs text-white/50 uppercase tracking-[0.2em]">Affectation</label>
+              {{ slot.form.user }}
+            </div>
+            <div class="space-y-2">
+              <label class="block text-xs text-white/50 uppercase tracking-[0.2em]">Statut</label>
+              {{ slot.form.status }}
+            </div>
+            <button class="rounded border border-white/15 bg-white/[0.08] hover:bg-white/[0.12] px-3 py-1.5 text-xs uppercase tracking-[0.2em]">
+              Mettre à jour
+            </button>
+          </form>
+          {% else %}
+          <div class="space-y-1 text-sm text-white/65">
+            <p class="text-white/50 uppercase tracking-[0.2em] text-[0.6rem]">Pilote / Membre</p>
+            {% if slot.user %}
+            <p>{{ slot.user.get_full_name|default:slot.user.get_username }}</p>
+            {% else %}
+            <p class="text-white/40">Libre</p>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+    {% else %}
+    <p class="text-white/60">Aucune place d'équipage n'est configurée pour ce vaisseau.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
