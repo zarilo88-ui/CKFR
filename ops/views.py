@@ -41,17 +41,14 @@ def ships_list(request):
         queryset = queryset.filter(role=ship_type)
     ships = queryset.order_by("name")
 
-    return render(
-        request,
-        "ops/ships_list.html",
-        {
-            "ships": ships,
-            "categories": Ship.CATEGORY_CHOICES,
-            "current_cat": category,
-            "ship_types": available_types,
-            "current_type": ship_type,
-        },
-    )
+    context = {
+        "ships": ships,
+        "categories": Ship.CATEGORY_CHOICES,
+        "current_cat": category,
+        "ship_types": available_types,
+        "current_type": ship_type,
+    }
+    return render(request, "ops/ships_list.html", context)
 
 
 @login_required
@@ -61,21 +58,56 @@ def ships_allocation(request):
     can_edit = is_planner(request.user)
     user_queryset = RoleSlotForm.default_user_queryset() if can_edit else None
 
+    ships_queryset = ships_with_slots().order_by("category", "name")
     prepared_ships = [
         prepare_ship_for_display(ship, can_edit=can_edit, user_queryset=user_queryset)
-        for ship in ships_with_slots().order_by("category", "name")
+        for ship in ships_queryset
     ]
 
     grouped_ships = group_ships_by_category(prepared_ships)
 
-    return render(
-        request,
-        "ops/ships_allocation.html",  # ensure this template exists
-        {
-            "can_edit": can_edit,
-            "grouped_ships": grouped_ships,
-        },
-@@ -111,26 +126,26 @@ def ship_detail(request, pk):
+    context = {
+        "can_edit": can_edit,
+        "grouped_ships": grouped_ships,
+    }
+    return render(request, "ops/ships_allocation.html", context)
+
+
+@login_required
+def ship_detail(request, pk):
+    """Display the details of a single ship and manage its role templates."""
+    ship = get_object_or_404(ships_with_slots(), pk=pk)
+    can_edit = is_planner(request.user)
+    user_queryset = RoleSlotForm.default_user_queryset() if can_edit else None
+
+    ship = prepare_ship_for_display(
+        ship,
+        can_edit=can_edit,
+        user_queryset=user_queryset,
+    )
+    slots_by_role = ship.slots_by_role
+
+    role_form = ShipRoleTemplateForm()
+
+    if request.method == "POST" and can_edit and "role_name" in request.POST:
+        role_form = ShipRoleTemplateForm(request.POST)
+        if role_form.is_valid():
+            role_template = role_form.save(commit=False)
+            role_template.ship = ship
+            role_template.save()
+            messages.success(request, "Rôle ajouté au vaisseau.")
+            return redirect("ship_detail", pk=ship.pk)
+
+    context = {
+        "ship": ship,
+        "slots_by_role": slots_by_role,
+        "role_form": role_form,
+        "can_edit": can_edit,
+    }
+    return render(request, "ops/ship_detail.html", context)
+
+
+@login_required
 @user_passes_test(is_planner)
 def role_slot_update(request, pk):
     """Update a single role slot assignment."""
