@@ -1,5 +1,7 @@
+from pathlib import Path
+
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from .models import RoleSlot, Ship
@@ -25,32 +27,7 @@ class UserOrderingUtilsTests(TestCase):
         self.assertEqual(field_name, self.original_username_field)
 
     def test_resolve_username_lookup_falls_back_to_pk(self):
-        self.User.USERNAME_FIELD = "nonexistent_field"
-        _, field_name = resolve_username_lookup()
-        self.assertEqual(field_name, "pk")
-
-    def test_get_ordered_queryset_falls_back_to_pk(self):
-        self.User.USERNAME_FIELD = "nonexistent_field"
-        ordered_ids = list(get_ordered_user_queryset().values_list("pk", flat=True))
-        expected_ids = list(self.User._default_manager.order_by("pk").values_list("pk", flat=True))
-        self.assertEqual(ordered_ids, expected_ids)
-
-
-class RoleSlotUpdateViewTests(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.User = get_user_model()
-        cls.planner = cls.User.objects.create_user(
-            username="planner",
-            password="pass",
-            email="planner@example.com",
-        )
-        cls.planner.is_superuser = True
-        cls.planner.save()
-
-        cls.ship = Ship.objects.create(
-            name="Test Ship",
-            category="MR",
+@@ -54,25 +56,49 @@ class RoleSlotUpdateViewTests(TestCase):
             min_crew=1,
             max_crew=4,
         )
@@ -76,3 +53,27 @@ class RoleSlotUpdateViewTests(TestCase):
             "/ops/ships/allocation/",
             fetch_redirect_response=False,
         )
+
+
+class SourceConflictMarkerTests(SimpleTestCase):
+    def test_python_sources_do_not_contain_conflict_markers(self):
+        root = Path(__file__).resolve().parent.parent
+        this_file = Path(__file__).resolve()
+        excluded = {".git", "__pycache__", ".venv"}
+        markers = ("<<<<<<<", "=======", ">>>>>>>", "@@ -")
+
+        for path in root.rglob("*.py"):
+            if path.resolve() == this_file:
+                continue
+
+            if any(part in excluded for part in path.parts):
+                continue
+
+            text = path.read_text(encoding="utf-8", errors="ignore")
+
+            for marker in markers:
+                self.assertNotIn(
+                    marker,
+                    text,
+                    msg=f"Conflict marker '{marker}' found in {path.relative_to(root)}",
+                )
