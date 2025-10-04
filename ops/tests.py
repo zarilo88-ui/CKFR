@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from django.contrib.auth import get_user_model
@@ -5,7 +6,8 @@ from django.contrib.auth.models import Group
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
-from .models import RoleSlot, Ship
+from .forms import HighlightedShipForm
+from .models import OperationHighlightedShip, RoleSlot, Ship
 from .utils import get_ordered_user_queryset, resolve_username_lookup
 
 
@@ -141,3 +143,42 @@ class SourceConflictMarkerTests(SimpleTestCase):
                     text,
                     msg=f"Conflict marker '{marker}' found in {path.relative_to(root)}",
                 )
+
+
+class HighlightedShipFormTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.ship = Ship.objects.create(
+            name="Form Test Ship",
+            manufacturer="Origin",
+            role="Exploration",
+            category="MR",
+            min_crew=1,
+            max_crew=4,
+        )
+
+    def test_coerces_json_role_entries(self):
+        data = {
+            "ship": str(self.ship.pk),
+            "gunner_entries": json.dumps(["Alice", "Bob"]),
+            "infantry_entries": "",
+            "pilot_entries": "Charlie\n  ",
+            "torpedo_entries": "[\"Dana\"]",
+        }
+        form = HighlightedShipForm(data=data)
+        self.assertTrue(form.is_valid())
+        cleaned = form.cleaned_data
+        self.assertEqual(cleaned["gunner_entries"], ["Alice", "Bob"])
+        self.assertEqual(cleaned["pilot_entries"], ["Charlie"])
+        self.assertEqual(cleaned["torpedo_entries"], ["Dana"])
+
+    def test_requires_ship_when_roles_populated(self):
+        role_field = HighlightedShipForm._role_field_name(
+            OperationHighlightedShip.ROLE_CHOICES[0][0]
+        )
+        data = {
+            role_field: json.dumps(["Crew Member"]),
+        }
+        form = HighlightedShipForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("Sélectionnez un vaisseau", form.errors["__all__"][0])
