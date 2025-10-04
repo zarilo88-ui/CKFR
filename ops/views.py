@@ -1,3 +1,9 @@
+"""Views for the operations module."""
+
+from django.contrib import messages
+from django.contrib.auth import decorators as auth_decorators
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from .forms import RoleSlotForm, ShipRoleTemplateForm
 from .models import RoleSlot, Ship
@@ -15,7 +21,7 @@ def is_planner(user):
     ).exists()
 
 
-@login_required
+@auth_decorators.login_required
 def ships_list(request):
     """Display the list of ships, optionally filtered by category."""
 
@@ -52,7 +58,7 @@ def ships_list(request):
     return render(request, "ops/ships_list.html", context)
 
 
-@login_required
+@auth_decorators.login_required
 def ships_allocation(request):
     """Show all ships with their crew allocations."""
 
@@ -74,7 +80,7 @@ def ships_allocation(request):
     return render(request, "ops/ships_allocation.html", context)
 
 
-@login_required
+@auth_decorators.login_required
 def ship_detail(request, pk):
     """Display the details of a single ship and manage its role templates."""
     ship = get_object_or_404(ships_with_slots(), pk=pk)
@@ -108,8 +114,8 @@ def ship_detail(request, pk):
     return render(request, "ops/ship_detail.html", context)
 
 
-@login_required
-@user_passes_test(is_planner)
+@auth_decorators.login_required
+@auth_decorators.user_passes_test(is_planner)
 def role_slot_update(request, pk):
     """Update a single role slot assignment."""
     slot = get_object_or_404(RoleSlot, pk=pk)
