@@ -100,7 +100,7 @@ class RoleSlot(models.Model):
         on_delete=models.CASCADE,
         related_name="role_slots",
         verbose_name="Vaisseau",
-        )
+    )
     role_name = models.CharField("Rôle", max_length=40)
     index = models.PositiveSmallIntegerField("N° de place", default=1)
     user = models.ForeignKey(

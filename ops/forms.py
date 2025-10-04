@@ -109,17 +109,17 @@ class HighlightedShipForm(forms.Form):
         ),
     )
 
-    for role, _, _ in ROLE_METADATA:
-        locals()[f"{role}_entries"] = forms.CharField(
-            required=False,
-            widget=forms.HiddenInput(),
-        )
-
     def __init__(self, *args, **kwargs):
         initial = kwargs.get("initial", {}) or {}
         super().__init__(*args, **kwargs)
         self.role_metadata = []
         for role, label, placeholder in self.ROLE_METADATA:
+            field_name = f"{role}_entries"
+            if field_name not in self.fields:
+                self.fields[field_name] = forms.CharField(
+                    required=False,
+                    widget=forms.HiddenInput(),
+                )
             field_name = f"{role}_entries"
             field = self.fields[field_name]
             field.widget.attrs.update(
