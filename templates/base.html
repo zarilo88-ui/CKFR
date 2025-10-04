@@ -56,21 +56,3 @@
     <div class="rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white/90">
       {{ message }}
     </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  <main class="min-h-screen">
-    {% block body %}{% endblock %}
-  </main>
-
-  {% if user.is_authenticated %}
-  <footer class="border-t border-white/10 text-xs text-white/50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-12 flex items-center justify-between">
-      <span>© C.K.F.R</span>
-      <span>Pirates of the Verse · noir &amp; blanc</span>
-    </div>
-  </footer>
-  {% endif %}
-</body>
-</html>

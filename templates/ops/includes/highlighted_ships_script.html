@@ -95,9 +95,23 @@
       const entriesContainer = block.querySelector('[data-role-entries]');
       const addButton = block.querySelector('[data-role-add]');
       const hiddenInput = block.querySelector(`[data-role-store="${role}"]`);
+      const emptyIndicator = block.querySelector('[data-role-empty]');
       if (!entriesContainer || !hiddenInput) {
         return;
       }
+
+      const toggleEmptyState = () => {
+        const hasEntries = Boolean(
+          entriesContainer.querySelector('[data-role-entry]')
+        );
+        if (emptyIndicator) {
+          emptyIndicator.classList.toggle('hidden', hasEntries);
+        }
+        if (!hasEntries) {
+          module.syncRoleBlock(block);
+        }
+        return hasEntries;
+      };
 
       const addEntry = (value = '') => {
         const row = document.createElement('div');
@@ -107,7 +121,7 @@
         input.type = 'text';
         input.value = value;
         input.placeholder = placeholder;
-        input.dataset.roleEntry = 'true';
+        input.setAttribute('data-role-entry', 'true');
         input.className = 'flex-1 rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm text-white';
         input.addEventListener('input', () => module.syncRoleBlock(block));
 
@@ -117,15 +131,16 @@
         removeBtn.textContent = 'Retirer';
         removeBtn.addEventListener('click', () => {
           row.remove();
-          if (!entriesContainer.querySelector('[data-role-entry]')) {
-            addEntry('');
-          }
+          toggleEmptyState();
           module.syncRoleBlock(block);
         });
 
         row.appendChild(input);
         row.appendChild(removeBtn);
         entriesContainer.appendChild(row);
+        toggleEmptyState();
+        module.syncRoleBlock(block);
+        return row;
       };
 
       let initialValues = [];
@@ -138,21 +153,20 @@
         initialValues = [];
       }
 
-      if (initialValues.length === 0) {
-        addEntry('');
-      } else {
+      if (initialValues.length > 0) {
         initialValues.forEach((value) => addEntry(String(value)));
       }
 
+      toggleEmptyState();
+      module.syncRoleBlock(block);
+
       if (addButton) {
         addButton.addEventListener('click', () => {
-          addEntry('');
-          const newest = entriesContainer.querySelectorAll('input[data-role-entry]');
-          const lastInput = newest[newest.length - 1];
-          if (lastInput) {
-            lastInput.focus();
+          const row = addEntry('');
+          const input = row.querySelector('input[data-role-entry]');
+          if (input) {
+            input.focus();
           }
-          module.syncRoleBlock(block);
         });
       }
 

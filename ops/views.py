@@ -268,6 +268,8 @@ def _fallback_filter_category(ship: Ship) -> tuple[str | None, str | None]:
     return CATEGORY_FALLBACK.get(ship.category, (None, None))
 
 
+
+
 def _classify_ship(ship: Ship) -> tuple[str | None, str | None]:
     """Attach filter metadata to the ship and return the selected slugs."""
 

@@ -16,24 +16,23 @@
       <button type="button" class="text-sm text-red-300 hover:text-red-100" data-remove-ship>Retirer</button>
     </div>
   </div>
-  <div class="space-y-3" data-role-sections>
+  <div class="grid gap-3 md:grid-cols-2" data-role-sections>
     {% for role in form.role_metadata %}
-    {% with field_name=role.role|add:'_entries' %}
     <div class="rounded-xl border border-white/10 bg-black/30 p-3 space-y-3" data-role-block data-role="{{ role.role }}" data-placeholder="{{ role.placeholder }}">
-      <div class="flex items-center justify-between gap-3">
-        <div>
+      <div class="flex items-start justify-between gap-3">
+        <div class="space-y-1">
           <p class="text-xs uppercase tracking-wide text-white/50">{{ role.label }}</p>
           <p class="text-xs text-white/40">Ajoutez un ou plusieurs membres pour ce rôle.</p>
         </div>
         <button type="button" class="text-xs font-medium text-indigo-200 hover:text-white" data-role-add>Ajouter</button>
       </div>
+      <p class="text-xs text-white/40" data-role-empty>Aucun membre ajouté.</p>
       <div class="space-y-2" data-role-entries></div>
-      {{ form[field_name] }}
-      {% if form[field_name].errors %}
-      <p class="text-sm text-red-300">{{ form[field_name].errors|join:', ' }}</p>
+      {{ role.field }}
+      {% if role.field.errors %}
+      <p class="text-sm text-red-300">{{ role.field.errors|join:', ' }}</p>
       {% endif %}
     </div>
-    {% endwith %}
     {% endfor %}
   </div>
   {% if form.fields.DELETE %}

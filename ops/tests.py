@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
@@ -27,9 +28,40 @@ class UserOrderingUtilsTests(TestCase):
         self.assertEqual(field_name, self.original_username_field)
 
     def test_resolve_username_lookup_falls_back_to_pk(self):
-@@ -54,25 +56,49 @@ class RoleSlotUpdateViewTests(TestCase):
-            min_crew=1,
-            max_crew=4,
+        self.User.USERNAME_FIELD = "missing_field"
+        _, field_name = resolve_username_lookup()
+        self.assertEqual(field_name, "pk")
+
+    def test_get_ordered_user_queryset_returns_sorted_usernames(self):
+        usernames = list(
+            get_ordered_user_queryset().values_list("username", flat=True)
+        )
+        self.assertEqual(usernames, ["anna", "mike", "zoe"])
+
+    def test_get_ordered_user_queryset_handles_invalid_field(self):
+        self.User.USERNAME_FIELD = "missing_field"
+        queryset = get_ordered_user_queryset()
+        pks = list(queryset.values_list("pk", flat=True))
+        self.assertEqual(pks, sorted(pks))
+
+
+class RoleSlotUpdateViewTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.User = get_user_model()
+        cls.manager_group, _ = Group.objects.get_or_create(name="Admin")
+        cls.planner = cls.User.objects.create_user(username="planner", password="pass")
+        cls.planner.groups.add(cls.manager_group)
+
+        cls.ship, _ = Ship.objects.get_or_create(
+            name="UnitTestShip-RoleSlot",
+            defaults={
+                "manufacturer": "Anvil",
+                "role": "Exploration",
+                "category": "MR",
+                "min_crew": 1,
+                "max_crew": 4,
+            },
         )
         cls.slot = RoleSlot.objects.create(
             ship=cls.ship,
@@ -38,20 +70,52 @@ class UserOrderingUtilsTests(TestCase):
             status="open",
         )
 
-    def test_redirects_to_safe_next_url(self):
+    def setUp(self):
         self.client.force_login(self.planner)
+
+    def test_redirects_to_safe_next_url(self):
+        next_url = reverse("ships_allocation")
         response = self.client.post(
             reverse("role_slot_update", args=[self.slot.pk]),
             {
                 "user": "",
                 "status": "open",
-                "next": "/ops/ships/allocation/",
+                "next": next_url,
             },
         )
         self.assertRedirects(
             response,
-            "/ops/ships/allocation/",
+            next_url,
             fetch_redirect_response=False,
+        )
+
+    def test_rejects_unsafe_next_url(self):
+        response = self.client.post(
+            reverse("role_slot_update", args=[self.slot.pk]),
+            {
+                "user": "",
+                "status": "open",
+                "next": "https://example.com/",
+            },
+        )
+        self.assertRedirects(
+            response,
+            reverse("ship_detail", args=[self.ship.pk]),
+        )
+
+    def test_updates_slot_status(self):
+        response = self.client.post(
+            reverse("role_slot_update", args=[self.slot.pk]),
+            {
+                "user": "",
+                "status": "assigned",
+            },
+        )
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.status, "assigned")
+        self.assertRedirects(
+            response,
+            reverse("ship_detail", args=[self.ship.pk]),
         )
 
 

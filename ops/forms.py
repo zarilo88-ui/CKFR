@@ -13,9 +13,9 @@ from .models import (
 
 
 ROLE_PLACEHOLDERS = {
-    "pilot": "Nom du pilote",
     "gunner": "Nom du gunner",
     "infantry": "Nom de l’escouade",
+    "pilot": "Nom du pilote",
     "torpedo": "Nom de l’opérateur torpille",
 }
 from .utils import get_ordered_user_queryset
@@ -43,7 +43,7 @@ class ShipRoleTemplateForm(forms.ModelForm):
 
 class RoleSlotForm(forms.ModelForm):
     user = forms.ModelChoiceField(
-@@ -40,55 +56,154 @@ class RoleSlotForm(forms.ModelForm):
+@@ -40,55 +56,155 @@ class RoleSlotForm(forms.ModelForm):
                 attrs={
                     "class": "w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2",
                 }
@@ -142,6 +142,7 @@ class HighlightedShipForm(forms.Form):
                     "label": label,
                     "placeholder": placeholder,
                     "initial": values,
+                    "field": self[field_name],
                 }
             )
 
