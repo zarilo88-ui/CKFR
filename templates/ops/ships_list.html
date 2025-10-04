@@ -18,19 +18,28 @@
 
   <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
     {% for ship in ships %}
-    <a href="{% url 'ship_detail' ship.pk %}" class="group rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition p-4 flex flex-col gap-2">
-      <div class="flex items-center justify-between">
-        <div class="font-medium group-hover:opacity-90">{{ ship.name }}</div>
-        <div class="flex items-center gap-1 opacity-70" aria-hidden="true">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18c1.2 0 2 .8 3 1.5S8.8 21 10 21s2-.8 3-1.5S15.8 18 17 18s2 .8 3 1.5 1.8 1.5 3 1.5v1H2v-1c1.2 0 1.8-.8 1-1.5S1.8 18 3 18Z"/></svg>
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c3 0 6 4 6 8 0 3-2 6-6 12-4-6-6-9-6-12 0-4 3-8 6-8Z"/></svg>
+    <a href="{% url 'ship_detail' ship.pk %}" class="group rounded-2xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition p-4 flex flex-col gap-3">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <p class="text-[0.7rem] uppercase tracking-[0.2em] text-white/40">{{ ship.manufacturer|default:"Constructeur inconnu" }}</p>
+          <h2 class="mt-1 text-base font-semibold group-hover:opacity-90">{{ ship.name }}</h2>
         </div>
+        <span class="px-2 py-0.5 rounded-full bg-white/[0.05] text-[0.65rem] uppercase tracking-[0.2em] text-white/50">{{ ship.get_category_display }}</span>
       </div>
-      <div class="text-xs text-white/60">
-        Catégorie&nbsp;:
-        {{ ship.get_category_display }}
-      </div>
-      <div class="text-xs text-white/60">Équipage {{ ship.min_crew }}&ndash;{{ ship.max_crew }}</div>
+      <dl class="space-y-1 text-xs text-white/60">
+        <div class="flex justify-between gap-2">
+          <dt class="text-white/50">Type</dt>
+          <dd class="text-right text-white/70">{{ ship.role|default:"Non communiqué" }}</dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="text-white/50">Équipage</dt>
+          <dd class="text-right text-white/70">{{ ship.crew_range_display }}</dd>
+        </div>
+        <div class="flex justify-between gap-2">
+          <dt class="text-white/50">Cargaison</dt>
+          <dd class="text-right text-white/70">{{ ship.cargo_capacity|default:"-" }}</dd>
+        </div>
+      </dl>
     </a>
     {% empty %}
     <p class="text-white/60">Aucun vaisseau pour le moment.</p>

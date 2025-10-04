@@ -6,9 +6,24 @@
 
   <header class="space-y-2">
     <h1 class="text-3xl sm:text-4xl font-semibold">{{ ship.name }}</h1>
-    <p class="text-white/60 text-sm">
-      {{ ship.get_category_display }} · Équipage {{ ship.min_crew }}&ndash;{{ ship.max_crew }} personnes
+    <p class="text-white/60 text-sm flex flex-wrap gap-2 items-center">
+      <span class="text-white/50 uppercase tracking-[0.2em] text-[0.65rem]">{{ ship.manufacturer|default:"Constructeur inconnu" }}</span>
+      <span class="px-2 py-0.5 rounded-full border border-white/15 text-[0.65rem] uppercase tracking-[0.2em] text-white/60">{{ ship.get_category_display }}</span>
     </p>
+    <dl class="grid gap-3 sm:grid-cols-3 text-sm text-white/70">
+      <div>
+        <dt class="text-white/50 uppercase tracking-[0.2em] text-[0.6rem]">Type</dt>
+        <dd class="mt-1">{{ ship.role|default:"Non communiqué" }}</dd>
+      </div>
+      <div>
+        <dt class="text-white/50 uppercase tracking-[0.2em] text-[0.6rem]">Équipage</dt>
+        <dd class="mt-1">{{ ship.crew_range_display }} personne{{ ship.max_crew|pluralize:"s" }}</dd>
+      </div>
+      <div>
+        <dt class="text-white/50 uppercase tracking-[0.2em] text-[0.6rem]">Cargaison</dt>
+        <dd class="mt-1">{{ ship.cargo_capacity|default:"-" }}</dd>
+      </div>
+    </dl>
   </header>
 
   {% if can_edit %}
@@ -34,55 +49,3 @@
 
   <div class="space-y-6">
     {% for role, slots in slots_by_role.items %}
-    <section class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <h2 class="text-lg font-medium">{{ role }}</h2>
-        <span class="text-xs text-white/40 uppercase tracking-[0.2em]">{{ slots|length }} place{{ slots|length|pluralize:"s" }}</span>
-      </div>
-      <div class="grid gap-3 md:grid-cols-2">
-        {% for slot in slots %}
-        <div class="rounded-xl bg-white/5 border border-white/10 p-4 space-y-3">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="text-sm text-white/70">Place n°{{ slot.index }}</div>
-            <span class="text-xs uppercase tracking-[0.2em] px-2 py-1 rounded-full {{ slot.badge_class }}">
-              {{ slot.get_status_display }}
-            </span>
-          </div>
-          {% if can_edit %}
-          <form method="post" action="{% url 'role_slot_update' slot.pk %}" class="space-y-3">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.get_full_path }}" />
-            {{ slot.form.non_field_errors }}
-            <label class="block text-sm">
-              <span class="text-white/50">Utilisateur</span>
-              <div class="mt-1">{{ slot.form.user }}</div>
-            </label>
-            <label class="block text-sm">
-              <span class="text-white/50">Statut</span>
-              <div class="mt-1">{{ slot.form.status }}</div>
-            </label>
-            <div class="flex justify-end">
-              <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1.5 text-sm">
-                Enregistrer
-              </button>
-            </div>
-          </form>
-          {% else %}
-          <div class="text-sm text-white/60">
-            {% if slot.user %}
-            Assigné à <span class="font-medium text-white">{{ slot.user.get_username }}</span>
-            {% else %}
-            Aucune affectation pour le moment.
-            {% endif %}
-          </div>
-          {% endif %}
-        </div>
-        {% endfor %}
-      </div>
-    </section>
-    {% empty %}
-    <p class="text-white/60">Aucun rôle n'est encore défini pour ce vaisseau.</p>
-    {% endfor %}
-  </div>
-</section>
-{% endblock %}
