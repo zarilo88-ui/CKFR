@@ -59,3 +59,30 @@ class ShipRoleTemplate(models.Model):
 
 
 class RoleSlot(models.Model):
+@@ -60,26 +68,26 @@ class RoleSlot(models.Model):
+    ship = models.ForeignKey(
+        Ship,
+        on_delete=models.CASCADE,
+        related_name="role_slots",
+        verbose_name="Vaisseau",
+    )
+    role_name = models.CharField("Rôle", max_length=40)
+    index = models.PositiveSmallIntegerField("N° de place", default=1)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="role_slots",
+        verbose_name="Utilisateur",
+    )
+    status = models.CharField("Statut", max_length=16, default="open", choices=STATUS_CHOICES)
+
+    class Meta:
+        unique_together = ("ship", "role_name", "index")
+        verbose_name = "Place de rôle"
+        verbose_name_plural = "Places de rôle"
+
+    def __str__(self):
+        who = self.user.get_username() if self.user else "libre"
+        return f"{self.ship} · {self.role_name} #{self.index} → {who}"
