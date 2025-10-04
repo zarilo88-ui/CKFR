@@ -460,6 +460,96 @@ def _store_highlighted_ships(operation: Operation, formset: HighlightedShipFormS
         if crew_assignments:
             OperationHighlightedCrewAssignment.objects.bulk_create(crew_assignments)
 
+
+@auth_decorators.login_required
+def ships_allocation(request):
+    """Display all ships with their role slots and assignments."""
+
+    can_edit = can_manage_ops(request.user)
+    user_queryset = None
+    if can_edit:
+        user_queryset = RoleSlotForm.default_user_queryset()
+
+    ships = [
+        prepare_ship_for_display(
+            ship,
+            can_edit=can_edit,
+            user_queryset=user_queryset,
+        )
+        for ship in ships_with_slots()
+    ]
+
+    context = {
+        "grouped_ships": group_ships_by_category(ships),
+        "can_edit": can_edit,
+    }
+    return render(request, "ops/ships_allocation.html", context)
+
+
+@auth_decorators.login_required
+def ship_detail(request, pk):
+    """Display detailed information for a ship and its role slots."""
+
+    ship = get_object_or_404(ships_with_slots(), pk=pk)
+    can_edit = can_manage_ops(request.user)
+    user_queryset = RoleSlotForm.default_user_queryset() if can_edit else None
+
+    ship = prepare_ship_for_display(
+        ship,
+        can_edit=can_edit,
+        user_queryset=user_queryset,
+    )
+    _classify_ship(ship)
+
+    role_form = None
+    if can_edit:
+        role_form = ShipRoleTemplateForm(request.POST or None)
+        if request.method == "POST":
+            if role_form.is_valid():
+                template = role_form.save(commit=False)
+                template.ship = ship
+                template.save()
+                messages.success(
+                    request,
+                    f"Le rôle « {template.role_name} » a été ajouté.",
+                )
+                return redirect("ship_detail", pk=ship.pk)
+            messages.error(request, "Merci de corriger les erreurs ci-dessous.")
+
+    context = {
+        "ship": ship,
+        "can_edit": can_edit,
+        "role_form": role_form,
+    }
+    return render(request, "ops/ship_detail.html", context)
+
+
+@auth_decorators.login_required
+@auth_decorators.user_passes_test(can_manage_ops)
+def role_slot_update(request, pk):
+    """Update a role slot assignment and redirect appropriately."""
+
+    slot = get_object_or_404(RoleSlot, pk=pk)
+    if request.method != "POST":
+        return redirect("ship_detail", pk=slot.ship_id)
+
+    form = RoleSlotForm(request.POST, instance=slot)
+    if form.is_valid():
+        form.save()
+        messages.success(request, "La place a été mise à jour.")
+    else:
+        messages.error(request, "Impossible de mettre à jour la place.")
+
+    next_url = request.POST.get("next", "")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+    return redirect("ship_detail", pk=slot.ship_id)
+
+
 @auth_decorators.login_required
 @auth_decorators.user_passes_test(can_manage_ops)
 def ships_list(request):

@@ -73,3 +73,45 @@
                   <form method="post" action="{% url 'role_slot_update' slot.pk %}" class="space-y-3">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+                    <div class="space-y-2">
+                      <label class="block text-xs text-white/50 uppercase tracking-[0.2em]">Affectation</label>
+                      {{ slot.form.user }}
+                    </div>
+                    <div class="space-y-2">
+                      <label class="block text-xs text-white/50 uppercase tracking-[0.2em]">Statut</label>
+                      {{ slot.form.status }}
+                    </div>
+                    <button class="rounded border border-white/15 bg-white/[0.08] hover:bg-white/[0.12] px-3 py-1.5 text-xs uppercase tracking-[0.2em]">
+                      Mettre à jour
+                    </button>
+                  </form>
+                  {% else %}
+                  <div class="space-y-1 text-sm text-white/65">
+                    <p class="text-white/50 uppercase tracking-[0.2em] text-[0.6rem]">Pilote / Membre</p>
+                    {% if slot.user %}
+                    <p>{{ slot.user.get_full_name|default:slot.user.get_username }}</p>
+                    {% else %}
+                    <p class="text-white/40">Libre</p>
+                    {% endif %}
+                  </div>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              </div>
+            </section>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-white/60 text-sm">Aucune place d'équipage n'est configurée pour ce vaisseau.</p>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-white/60">Aucun vaisseau disponible pour le moment.</p>
+  {% endif %}
+</section>
+{% endblock %}

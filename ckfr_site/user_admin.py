@@ -23,6 +23,11 @@ class CustomUserChangeForm(forms.ModelForm):
         if "is_superuser" in self.fields:
             self.fields["is_superuser"].label = "SuperAdmin"
 
+    def clean_password(self):
+        """Preserve the existing hashed password when the field is untouched."""
+
+        return self.initial.get("password", getattr(self.instance, "password", ""))
+
 # Unregister the default admin first (avoids AlreadyRegistered)
 try:
     admin.site.unregister(User)
@@ -48,9 +53,3 @@ class UserAdmin(BaseUserAdmin):
         if self._protect_superadmin(request, obj):
             return False
         return super().has_delete_permission(request, obj)
-
-    def get_actions(self, request):
-        actions = super().get_actions(request)
-        if not request.user.is_superuser and "delete_selected" in actions:
-            del actions["delete_selected"]
-        return actions

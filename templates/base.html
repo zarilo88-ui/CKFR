@@ -1,3 +1,5 @@
+<!DOCTYPE html>
+<html lang="fr">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -17,7 +19,7 @@
     }
   </style>
 </head>
-<body class="h-full bg-black text-white">
+<body class="min-h-screen bg-black text-white">
   <div class="noise" aria-hidden="true"></div>
 
   {% if user.is_authenticated %}
@@ -55,4 +57,13 @@
     {% for message in messages %}
     <div class="rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white/90">
       {{ message }}
-    </div
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <main class="min-h-[calc(100vh-4rem)] pb-16">
+    {% block body %}{% endblock %}
+  </main>
+</body>
+</html>

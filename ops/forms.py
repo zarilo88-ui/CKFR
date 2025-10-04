@@ -46,11 +46,17 @@ class RoleSlotForm(forms.ModelForm):
         label="Utilisateur",
         queryset=get_user_model().objects.none(),
         required=False,
-@@ -40,55 +56,158 @@ class RoleSlotForm(forms.ModelForm):
-                attrs={
-                    "class": "w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2",
-                }
-            ),
+        widget=forms.Select(
+            attrs={
+                "class": "w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2",
+            }
+        ),
+    )
+
+    class Meta:
+        model = RoleSlot
+        fields = ("user", "status")
+        widgets = {
             "status": forms.Select(
                 attrs={
                     "class": "w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2",
@@ -75,12 +81,6 @@ class OperationForm(forms.ModelForm):
         fields = ("title", "description", "is_active")
         widgets = {
             "title": forms.TextInput(
-                attrs={
-                    "class": "w-full rounded-xl border border-white/10 bg-white/5 text-white px-3 py-2",
-                    "placeholder": "Nom de l’opération",
-                }
-            ),
-            "description": forms.Textarea(
                 attrs={
                     "class": "w-full rounded-xl border border-white/10 bg-white/5 text-white px-3 py-3",
                     "rows": 4,
