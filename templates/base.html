@@ -31,7 +31,6 @@
         <a href="{% url 'operation_overview' %}" class="text-white/80 hover:text-white">Opération</a>
         <a href="{% url 'operations_manage' %}" class="text-white/80 hover:text-white">Gestion opérations</a>
         <a href="{% url 'ships_list' %}" class="text-white/80 hover:text-white">Vaisseaux</a>
-        <a href="{% url 'ships_allocation' %}" class="text-white/80 hover:text-white">Allocation</a>
         {% if user.is_staff %}
         <a href="/admin/" class="text-white/60 hover:text-white/90">Admin</a>
         {% endif %}

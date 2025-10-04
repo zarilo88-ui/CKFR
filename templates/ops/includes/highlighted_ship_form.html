@@ -1,0 +1,42 @@
+<div class="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-4" data-ship-form{% if is_template %} data-template="true"{% endif %}>
+  {% if not is_template and form.non_field_errors %}
+  <div class="rounded-lg border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-200 space-y-1">
+    {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+  </div>
+  {% endif %}
+  <div class="flex flex-col gap-3 md:flex-row md:items-end">
+    <div class="flex-1 space-y-1">
+      <label class="block text-sm text-white/70" for="{{ form.ship.id_for_label }}">Vaisseau</label>
+      {{ form.ship }}
+      {% if form.ship.errors %}
+      <p class="text-sm text-red-300">{{ form.ship.errors|join:', ' }}</p>
+      {% endif %}
+    </div>
+    <div class="flex items-center justify-end gap-3">
+      <button type="button" class="text-sm text-red-300 hover:text-red-100" data-remove-ship>Retirer</button>
+    </div>
+  </div>
+  <div class="space-y-3" data-role-sections>
+    {% for role in form.role_metadata %}
+    {% with field_name=role.role|add:'_entries' %}
+    <div class="rounded-xl border border-white/10 bg-black/30 p-3 space-y-3" data-role-block data-role="{{ role.role }}" data-placeholder="{{ role.placeholder }}">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <p class="text-xs uppercase tracking-wide text-white/50">{{ role.label }}</p>
+          <p class="text-xs text-white/40">Ajoutez un ou plusieurs membres pour ce rôle.</p>
+        </div>
+        <button type="button" class="text-xs font-medium text-indigo-200 hover:text-white" data-role-add>Ajouter</button>
+      </div>
+      <div class="space-y-2" data-role-entries></div>
+      {{ form[field_name] }}
+      {% if form[field_name].errors %}
+      <p class="text-sm text-red-300">{{ form[field_name].errors|join:', ' }}</p>
+      {% endif %}
+    </div>
+    {% endwith %}
+    {% endfor %}
+  </div>
+  {% if form.fields.DELETE %}
+  <div class="hidden">{{ form.DELETE }}</div>
+  {% endif %}
+</div>

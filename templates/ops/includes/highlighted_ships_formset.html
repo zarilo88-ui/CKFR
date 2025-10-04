@@ -1,0 +1,18 @@
+<div class="space-y-4" data-highlighted-ships data-form-prefix="{{ ships_formset.prefix }}">
+  {{ ships_formset.management_form }}
+  <div class="space-y-4" data-ship-forms>
+    {% for ship_form in ships_formset %}
+      {% if ship_form.is_bound or ship_form.initial or not ship_form.empty_permitted or forloop.first %}
+        {% include "ops/includes/highlighted_ship_form.html" with form=ship_form %}
+      {% endif %}
+    {% endfor %}
+  </div>
+  <div class="flex justify-end">
+    <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-indigo-400/60 px-4 py-2 text-sm text-indigo-200 hover:bg-indigo-500/10" data-add-ship>
+      Ajouter un vaisseau
+    </button>
+  </div>
+  <template data-empty-form>
+    {% include "ops/includes/highlighted_ship_form.html" with form=ships_formset.empty_form is_template=True %}
+  </template>
+</div>

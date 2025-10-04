@@ -1,0 +1,190 @@
+<script>
+(function () {
+  if (window.CKFR?.highlightedShips?.initialized) {
+    window.CKFR.highlightedShips.initAll();
+    return;
+  }
+
+  const module = {
+    initialized: true,
+    initAll() {
+      document
+        .querySelectorAll('[data-highlighted-ships]')
+        .forEach((root) => module.initContainer(root));
+    },
+    initContainer(root) {
+      if (!root || root.dataset.initialized === 'true') {
+        return;
+      }
+      root.dataset.initialized = 'true';
+      const formsContainer = root.querySelector('[data-ship-forms]');
+      const addButton = root.querySelector('[data-add-ship]');
+      const totalFormsInput = root.querySelector(
+        `input[name="${root.dataset.formPrefix}-TOTAL_FORMS"]`
+      );
+      const template = root.querySelector('template[data-empty-form]');
+      if (!formsContainer || !totalFormsInput || !template) {
+        return;
+      }
+
+      formsContainer
+        .querySelectorAll('[data-ship-form]')
+        .forEach((form) => module.initShipForm(form));
+
+      if (addButton) {
+        addButton.addEventListener('click', () => {
+          const nextIndex = Number.parseInt(totalFormsInput.value, 10) || 0;
+          const html = template.innerHTML.replace(/__prefix__/g, String(nextIndex));
+          const wrapper = document.createElement('div');
+          wrapper.innerHTML = html.trim();
+          const newForm = wrapper.firstElementChild;
+          if (!newForm) {
+            return;
+          }
+          formsContainer.appendChild(newForm);
+          totalFormsInput.value = nextIndex + 1;
+          module.initShipForm(newForm);
+          newForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+      }
+
+      const outerForm = root.closest('form');
+      if (outerForm) {
+        outerForm.addEventListener('submit', () => {
+          formsContainer
+            .querySelectorAll('[data-ship-form]')
+            .forEach((form) => module.syncShipForm(form));
+        });
+      }
+    },
+    initShipForm(wrapper) {
+      if (wrapper.dataset.shipFormInitialized === 'true') {
+        return;
+      }
+      wrapper.dataset.shipFormInitialized = 'true';
+
+      const deleteField = wrapper.querySelector('[data-delete-field]');
+      const removeButton = wrapper.querySelector('[data-remove-ship]');
+      if (removeButton) {
+        removeButton.addEventListener('click', () => {
+          if (deleteField) {
+            if (deleteField.type === 'checkbox') {
+              deleteField.checked = true;
+            } else {
+              deleteField.value = 'on';
+            }
+          }
+          wrapper.classList.add('hidden');
+          wrapper.setAttribute('data-ship-form-removed', 'true');
+        });
+      }
+
+      wrapper
+        .querySelectorAll('[data-role-block]')
+        .forEach((block) => module.initRoleBlock(block));
+
+      module.syncShipForm(wrapper);
+    },
+    initRoleBlock(block) {
+      if (block.dataset.roleInitialized === 'true') {
+        return;
+      }
+      block.dataset.roleInitialized = 'true';
+      const role = block.dataset.role;
+      const placeholder = block.dataset.placeholder || '';
+      const entriesContainer = block.querySelector('[data-role-entries]');
+      const addButton = block.querySelector('[data-role-add]');
+      const hiddenInput = block.querySelector(`[data-role-store="${role}"]`);
+      if (!entriesContainer || !hiddenInput) {
+        return;
+      }
+
+      const addEntry = (value = '') => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-3';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = value;
+        input.placeholder = placeholder;
+        input.dataset.roleEntry = 'true';
+        input.className = 'flex-1 rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm text-white';
+        input.addEventListener('input', () => module.syncRoleBlock(block));
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'text-xs text-red-300 hover:text-red-100';
+        removeBtn.textContent = 'Retirer';
+        removeBtn.addEventListener('click', () => {
+          row.remove();
+          if (!entriesContainer.querySelector('[data-role-entry]')) {
+            addEntry('');
+          }
+          module.syncRoleBlock(block);
+        });
+
+        row.appendChild(input);
+        row.appendChild(removeBtn);
+        entriesContainer.appendChild(row);
+      };
+
+      let initialValues = [];
+      try {
+        const parsed = JSON.parse(hiddenInput.value || hiddenInput.dataset.initial || '[]');
+        if (Array.isArray(parsed)) {
+          initialValues = parsed;
+        }
+      } catch (error) {
+        initialValues = [];
+      }
+
+      if (initialValues.length === 0) {
+        addEntry('');
+      } else {
+        initialValues.forEach((value) => addEntry(String(value)));
+      }
+
+      if (addButton) {
+        addButton.addEventListener('click', () => {
+          addEntry('');
+          const newest = entriesContainer.querySelectorAll('input[data-role-entry]');
+          const lastInput = newest[newest.length - 1];
+          if (lastInput) {
+            lastInput.focus();
+          }
+          module.syncRoleBlock(block);
+        });
+      }
+
+      module.syncRoleBlock(block);
+    },
+    syncRoleBlock(block) {
+      const hiddenInput = block.querySelector(`[data-role-store="${block.dataset.role}"]`);
+      const values = Array.from(
+        block.querySelectorAll('input[data-role-entry]')
+      )
+        .map((input) => input.value.trim())
+        .filter((value) => value.length > 0);
+      if (hiddenInput) {
+        hiddenInput.value = JSON.stringify(values);
+      }
+    },
+    syncShipForm(wrapper) {
+      wrapper
+        .querySelectorAll('[data-role-block]')
+        .forEach((block) => module.syncRoleBlock(block));
+    },
+  };
+
+  window.CKFR = window.CKFR || {};
+  window.CKFR.highlightedShips = module;
+
+  if (document.readyState !== 'loading') {
+    module.initAll();
+  } else {
+    document.addEventListener('DOMContentLoaded', () => module.initAll(), {
+      once: true,
+    });
+  }
+})();
+</script>

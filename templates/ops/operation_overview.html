@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Opération actuelle · C.K.F.R{% endblock %}
 {% block body %}
-<div class="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
+<div class="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
   <header class="flex flex-col gap-2">
     <h1 class="text-3xl font-semibold">Opération actuelle</h1>
     <p class="text-white/70 text-sm sm:text-base">
-      Retrouvez ici le briefing de l’opération en cours et le vaisseau sélectionné par le commandement.
+      Retrouvez ici le briefing de l’opération en cours et les vaisseaux mis en avant par le commandement.
     </p>
   </header>
 
@@ -18,23 +18,46 @@
     {% if operation.description %}
     <p class="text-white/80 leading-relaxed whitespace-pre-line">{{ operation.description }}</p>
     {% endif %}
-    {% if operation.highlighted_ship %}
-    <div class="rounded-xl border border-indigo-500/40 bg-indigo-500/10 p-4">
-      <h3 class="text-lg font-medium text-indigo-100">Vaisseau mis en avant</h3>
-      <div class="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <p class="text-xl font-semibold">{{ operation.highlighted_ship.name }}</p>
-          <p class="text-sm text-white/70">{{ operation.highlighted_ship.manufacturer }} · {{ operation.highlighted_ship.role }}</p>
-        </div>
-        <div class="text-sm text-white/60">
-          Équipage : {{ operation.highlighted_ship.crew_range_display }}<br />
-          Catégorie : {{ operation.highlighted_ship.get_category_display }}
-        </div>
+    {% with links=operation.highlighted_ship_links.all %}
+      {% if links %}
+      <div class="rounded-xl border border-indigo-500/40 bg-indigo-500/10 p-4 space-y-4">
+        <h3 class="text-lg font-medium text-indigo-100">Vaisseaux mis en avant</h3>
+        <ul class="space-y-4">
+          {% for link in links %}
+          <li class="rounded-xl border border-indigo-200/20 bg-black/40 p-4 space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p class="text-xl font-semibold text-white">{{ link.ship.name }}</p>
+                <p class="text-sm text-white/70">{{ link.ship.manufacturer }} · {{ link.ship.role }}</p>
+              </div>
+              <div class="text-xs uppercase tracking-wide text-white/50">Catégorie {{ link.ship.get_category_display }} · Équipage {{ link.ship.crew_range_display }}</div>
+            </div>
+            <dl class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm text-white/80">
+              {% for role, label, crew_list in link.role_rows %}
+              <div class="space-y-2">
+                <dt class="text-white/60 uppercase tracking-wide text-xs">{{ label }}</dt>
+                {% if crew_list %}
+                <dd>
+                  <ul class="flex flex-wrap gap-2">
+                    {% for name in crew_list %}
+                    <li class="rounded-lg border border-white/15 bg-white/10 px-2 py-1 text-xs text-white/90">{{ name }}</li>
+                    {% endfor %}
+                  </ul>
+                </dd>
+                {% else %}
+                <dd class="text-white/50">—</dd>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </dl>
+          </li>
+          {% endfor %}
+        </ul>
       </div>
-    </div>
-    {% else %}
-    <p class="text-white/70">Aucun vaisseau n’a encore été sélectionné pour cette opération.</p>
-    {% endif %}
+      {% else %}
+      <p class="text-white/70">Aucun vaisseau n’a encore été sélectionné pour cette opération.</p>
+      {% endif %}
+    {% endwith %}
   </section>
   {% else %}
   <section class="rounded-2xl border border-white/10 bg-white/5 p-6">

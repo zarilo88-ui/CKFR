@@ -9,7 +9,7 @@
     </div>
   </header>
 
-  <section class="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
+    <section class="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
     <h2 class="text-xl font-semibold">Nouvelle opération</h2>
     {% if form.non_field_errors %}
     <div class="rounded-lg border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-200">
@@ -34,21 +34,20 @@
         <p class="text-sm text-red-300">{{ form.description.errors|join:', ' }}</p>
         {% endif %}
       </div>
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div class="space-y-1">
-          <label class="block text-sm text-white/70" for="{{ form.highlighted_ship.id_for_label }}">Vaisseau mis en avant</label>
-          {{ form.highlighted_ship }}
-          {% if form.highlighted_ship.errors %}
-          <p class="text-sm text-red-300">{{ form.highlighted_ship.errors|join:', ' }}</p>
-          {% endif %}
-        </div>
-        <div class="flex items-center gap-3 pt-6">
+      <div class="flex items-center gap-3">
           {{ form.is_active }}
           <label class="text-sm text-white/70" for="{{ form.is_active.id_for_label }}">Définir comme opération active</label>
         </div>
         {% if form.is_active.errors %}
-        <p class="text-sm text-red-300 sm:col-span-2">{{ form.is_active.errors|join:', ' }}</p>
+        <p class="text-sm text-red-300">{{ form.is_active.errors|join:', ' }}</p>
         {% endif %}
+      </div>
+      <div class="space-y-3">
+        <div>
+          <h3 class="text-lg font-semibold">Vaisseaux mis en avant</h3>
+          <p class="text-sm text-white/60">Sélectionnez un vaisseau, puis ajoutez les membres d’équipage pour chaque rôle grâce aux boutons dédiés.</p>
+        </div>
+        {% include "ops/includes/highlighted_ships_formset.html" with ships_formset=ships_formset %}
       </div>
       <div class="text-right">
         <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-sm font-medium">Enregistrer l’opération</button>
@@ -93,23 +92,45 @@
         {% if op.description %}
         <p class="text-white/80 leading-relaxed whitespace-pre-line">{{ op.description }}</p>
         {% endif %}
-        <div class="grid gap-3 sm:grid-cols-2">
-          <div class="text-sm text-white/60">
-            <span class="font-medium text-white/80">Vaisseau mis en avant :</span>
-            {% if op.highlighted_ship %}
-              {{ op.highlighted_ship.name }} — {{ op.highlighted_ship.manufacturer }}
+        <div class="space-y-3">
+          <p class="text-sm text-white/60 font-medium">Vaisseaux mis en avant :</p>
+          {% with links=op.highlighted_ship_links.all %}
+            {% if links %}
+            <ul class="space-y-3">
+              {% for link in links %}
+              <li class="rounded-xl border border-white/10 bg-black/40 p-4 space-y-2">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <p class="text-base font-semibold text-white">{{ link.ship.name }}</p>
+                    <p class="text-sm text-white/60">{{ link.ship.manufacturer }} · {{ link.ship.role }}</p>
+                  </div>
+                  <div class="text-xs uppercase tracking-wide text-white/40">Catégorie {{ link.ship.get_category_display }} · Équipage {{ link.ship.crew_range_display }}</div>
+                </div>
+                <dl class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm text-white/70">
+                  {% for role, label, crew_list in link.role_rows %}
+                  <div class="space-y-2">
+                    <dt class="text-white/50 uppercase tracking-wide text-xs">{{ label }}</dt>
+                    {% if crew_list %}
+                    <dd>
+                      <ul class="flex flex-wrap gap-2">
+                        {% for name in crew_list %}
+                        <li class="rounded-lg border border-white/15 bg-white/10 px-2 py-1 text-xs text-white/90">{{ name }}</li>
+                        {% endfor %}
+                      </ul>
+                    </dd>
+                    {% else %}
+                    <dd class="text-white/50">—</dd>
+                    {% endif %}
+                  </div>
+                  {% endfor %}
+                </dl>
+              </li>
+              {% endfor %}
+            </ul>
             {% else %}
-              Aucun
+            <p class="text-white/60">Aucun vaisseau en avant pour cette opération.</p>
             {% endif %}
-          </div>
-          <div class="text-sm text-white/60">
-            <span class="font-medium text-white/80">Catégorie :</span>
-            {% if op.highlighted_ship %}
-              {{ op.highlighted_ship.get_category_display }} · Équipage {{ op.highlighted_ship.crew_range_display }}
-            {% else %}
-              —
-            {% endif %}
-          </div>
+          {% endwith %}
         </div>
       </article>
       {% empty %}
@@ -118,4 +139,5 @@
     </div>
   </section>
 </div>
+{% include "ops/includes/highlighted_ships_script.html" %}
 {% endblock %}
