@@ -44,7 +44,7 @@
 
   {% if can_manage_operations %}
   <div class="text-right">
-    <a href="/admin/ops/operation/" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-sm font-medium">
+    <a href="{% url 'operations_manage' %}" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-sm font-medium">
       Gérer les opérations
     </a>
   </div>

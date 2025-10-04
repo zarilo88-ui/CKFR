@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 
-from .models import ShipRoleTemplate, RoleSlot
+from .models import Operation, ShipRoleTemplate, RoleSlot
 from .utils import get_ordered_user_queryset
 
 
@@ -27,11 +27,7 @@ class ShipRoleTemplateForm(forms.ModelForm):
 
 class RoleSlotForm(forms.ModelForm):
     user = forms.ModelChoiceField(
-        label="Utilisateur",
-        queryset=get_user_model()._default_manager.none(),
-        required=False,
-    )
-
+@@ -35,25 +35,60 @@ class RoleSlotForm(forms.ModelForm):
     class Meta:
         model = RoleSlot
         fields = ("user", "status")
@@ -57,3 +53,38 @@ class RoleSlotForm(forms.ModelForm):
     @staticmethod
     def default_user_queryset():
         return get_ordered_user_queryset()
+
+
+class OperationForm(forms.ModelForm):
+    class Meta:
+        model = Operation
+        fields = ("title", "description", "highlighted_ship", "is_active")
+        widgets = {
+            "title": forms.TextInput(
+                attrs={
+                    "class": "w-full rounded-xl border border-white/10 bg-white/5 text-white px-3 py-2",
+                    "placeholder": "Nom de l’opération",
+                }
+            ),
+            "description": forms.Textarea(
+                attrs={
+                    "class": "w-full rounded-xl border border-white/10 bg-white/5 text-white px-3 py-3",
+                    "rows": 4,
+                    "placeholder": "Briefing, objectifs, instructions…",
+                }
+            ),
+            "highlighted_ship": forms.Select(
+                attrs={
+                    "class": "w-full rounded-xl border border-white/10 bg-white/5 text-white px-3 py-2",
+                }
+            ),
+            "is_active": forms.CheckboxInput(
+                attrs={
+                    "class": "h-4 w-4 rounded border-white/20 bg-black/40 text-indigo-500 focus:ring-indigo-400",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["highlighted_ship"].empty_label = "— Aucun —"

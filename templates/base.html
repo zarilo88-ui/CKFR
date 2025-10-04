@@ -1,4 +1,3 @@
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -27,19 +26,39 @@
       <a href="{% url 'operation_overview' %}" class="flex items-center gap-8 group">
         <span class="font-semibold tracking-wide">C.K.F.R</span>
       </a>
+      {% if can_manage_operations %}
       <nav class="flex items-center gap-8 text-sm">
         <a href="{% url 'operation_overview' %}" class="text-white/80 hover:text-white">Opération</a>
-        {% if can_manage_operations %}
+        <a href="{% url 'operations_manage' %}" class="text-white/80 hover:text-white">Gestion opérations</a>
         <a href="{% url 'ships_list' %}" class="text-white/80 hover:text-white">Vaisseaux</a>
         <a href="{% url 'ships_allocation' %}" class="text-white/80 hover:text-white">Allocation</a>
-        {% endif %}
-        {% if can_manage_operations or user.is_staff %}
+        {% if user.is_staff %}
         <a href="/admin/" class="text-white/60 hover:text-white/90">Admin</a>
         {% endif %}
         <a href="/logout/" class="rounded border border-white/20 px-3 py-1 hover:bg-white/10">Déconnexion</a>
       </nav>
+      {% elif can_view_operations %}
+      <nav class="flex items-center gap-8 text-sm">
+        <a href="{% url 'operation_overview' %}" class="text-white/80 hover:text-white">Opération</a>
+        <a href="/logout/" class="rounded border border-white/20 px-3 py-1 hover:bg-white/10">Déconnexion</a>
+      </nav>
+      {% else %}
+      <nav class="flex items-center gap-8 text-sm">
+        <a href="/logout/" class="rounded border border-white/20 px-3 py-1 hover:bg-white/10">Déconnexion</a>
+      </nav>
+      {% endif %}
     </div>
   </header>
+  {% endif %}
+
+  {% if messages %}
+  <div class="max-w-4xl mx-auto mt-4 px-4 sm:px-6 space-y-2">
+    {% for message in messages %}
+    <div class="rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white/90">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
   {% endif %}
 
   <main class="min-h-screen">

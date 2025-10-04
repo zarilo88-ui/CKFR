@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Gestion des opérations · C.K.F.R{% endblock %}
+{% block body %}
+<div class="max-w-5xl mx-auto p-4 sm:p-6 space-y-8">
+  <header class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-3xl font-semibold">Gestion des opérations</h1>
+      <p class="text-white/70 text-sm sm:text-base">Créez, modifiez et activez les opérations directement depuis cette interface.</p>
+    </div>
+  </header>
+
+  <section class="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
+    <h2 class="text-xl font-semibold">Nouvelle opération</h2>
+    {% if form.non_field_errors %}
+    <div class="rounded-lg border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-200">
+      {% for error in form.non_field_errors %}
+      <p>{{ error }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      <div class="space-y-1">
+        <label class="block text-sm text-white/70" for="{{ form.title.id_for_label }}">Nom de l’opération</label>
+        {{ form.title }}
+        {% if form.title.errors %}
+        <p class="text-sm text-red-300">{{ form.title.errors|join:', ' }}</p>
+        {% endif %}
+      </div>
+      <div class="space-y-1">
+        <label class="block text-sm text-white/70" for="{{ form.description.id_for_label }}">Description</label>
+        {{ form.description }}
+        {% if form.description.errors %}
+        <p class="text-sm text-red-300">{{ form.description.errors|join:', ' }}</p>
+        {% endif %}
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="space-y-1">
+          <label class="block text-sm text-white/70" for="{{ form.highlighted_ship.id_for_label }}">Vaisseau mis en avant</label>
+          {{ form.highlighted_ship }}
+          {% if form.highlighted_ship.errors %}
+          <p class="text-sm text-red-300">{{ form.highlighted_ship.errors|join:', ' }}</p>
+          {% endif %}
+        </div>
+        <div class="flex items-center gap-3 pt-6">
+          {{ form.is_active }}
+          <label class="text-sm text-white/70" for="{{ form.is_active.id_for_label }}">Définir comme opération active</label>
+        </div>
+        {% if form.is_active.errors %}
+        <p class="text-sm text-red-300 sm:col-span-2">{{ form.is_active.errors|join:', ' }}</p>
+        {% endif %}
+      </div>
+      <div class="text-right">
+        <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-sm font-medium">Enregistrer l’opération</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="space-y-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-xl font-semibold">Historique</h2>
+      <p class="text-sm text-white/50">Les opérations actives sont indiquées ci-dessous.</p>
+    </div>
+    <div class="space-y-4">
+      {% for op in operations %}
+      <article class="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 class="text-2xl font-semibold flex items-center gap-3">
+              {{ op.title }}
+              {% if op.is_active %}
+              <span class="rounded-full bg-emerald-500/20 text-emerald-200 text-xs font-semibold uppercase tracking-wide px-3 py-1">Active</span>
+              {% endif %}
+            </h3>
+            <p class="text-xs uppercase tracking-wide text-white/50">Mis à jour le {{ op.updated_at|date:"d/m/Y H:i" }}</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <a href="{% url 'operation_edit' op.pk %}" class="rounded-lg border border-white/20 px-3 py-1.5 text-sm hover:bg-white/10">Modifier</a>
+            <form method="post" action="{% url 'operation_activate' op.pk %}">
+              {% csrf_token %}
+              {% if op.is_active %}
+              <button type="submit" class="rounded-lg border border-indigo-400/40 px-3 py-1.5 text-sm text-indigo-200/60 cursor-not-allowed opacity-50" disabled>Déjà active</button>
+              {% else %}
+              <button type="submit" class="rounded-lg border border-indigo-400/60 px-3 py-1.5 text-sm text-indigo-200 hover:bg-indigo-500/10">Définir active</button>
+              {% endif %}
+            </form>
+            <form method="post" action="{% url 'operation_delete' op.pk %}" onsubmit="return confirm('Supprimer définitivement cette opération ?');">
+              {% csrf_token %}
+              <button type="submit" class="rounded-lg border border-red-500/60 px-3 py-1.5 text-sm text-red-200 hover:bg-red-500/10">Supprimer</button>
+            </form>
+          </div>
+        </div>
+        {% if op.description %}
+        <p class="text-white/80 leading-relaxed whitespace-pre-line">{{ op.description }}</p>
+        {% endif %}
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div class="text-sm text-white/60">
+            <span class="font-medium text-white/80">Vaisseau mis en avant :</span>
+            {% if op.highlighted_ship %}
+              {{ op.highlighted_ship.name }} — {{ op.highlighted_ship.manufacturer }}
+            {% else %}
+              Aucun
+            {% endif %}
+          </div>
+          <div class="text-sm text-white/60">
+            <span class="font-medium text-white/80">Catégorie :</span>
+            {% if op.highlighted_ship %}
+              {{ op.highlighted_ship.get_category_display }} · Équipage {{ op.highlighted_ship.crew_range_display }}
+            {% else %}
+              —
+            {% endif %}
+          </div>
+        </div>
+      </article>
+      {% empty %}
+      <p class="text-white/70">Aucune opération enregistrée pour le moment.</p>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

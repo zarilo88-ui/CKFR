@@ -7,7 +7,7 @@ from django.contrib.auth import decorators as auth_decorators
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from .forms import RoleSlotForm, ShipRoleTemplateForm
+from .forms import OperationForm, RoleSlotForm, ShipRoleTemplateForm
 from .models import Operation, RoleSlot, Ship
 from .permissions import can_manage_ops
 from .services import (
@@ -290,6 +290,92 @@ def operation_overview(request):
         "can_manage_operations": can_manage_ops(request.user),
     }
     return render(request, "ops/operation_overview.html", context)
+
+
+@auth_decorators.login_required
+@auth_decorators.user_passes_test(can_manage_ops)
+def operations_manage(request):
+    """Allow administrators to create and manage operations."""
+
+    operations = (
+        Operation.objects.select_related("highlighted_ship")
+        .all()
+        .order_by("-is_active", "-updated_at", "title")
+    )
+    form = OperationForm(request.POST or None)
+
+    if request.method == "POST":
+        if form.is_valid():
+            operation = form.save()
+            messages.success(
+                request,
+                f"L’opération « {operation.title} » a été enregistrée.",
+            )
+            return redirect("operations_manage")
+        messages.error(request, "Merci de corriger les erreurs ci-dessous.")
+
+    context = {
+        "operations": operations,
+        "form": form,
+    }
+    return render(request, "ops/operations_manage.html", context)
+
+
+@auth_decorators.login_required
+@auth_decorators.user_passes_test(can_manage_ops)
+def operation_edit(request, pk):
+    """Edit an existing operation."""
+
+    operation = get_object_or_404(Operation, pk=pk)
+    form = OperationForm(request.POST or None, instance=operation)
+
+    if request.method == "POST":
+        if form.is_valid():
+            operation = form.save()
+            messages.success(
+                request,
+                f"L’opération « {operation.title} » a été mise à jour.",
+            )
+            return redirect("operations_manage")
+        messages.error(request, "Merci de corriger les erreurs ci-dessous.")
+
+    context = {
+        "form": form,
+        "operation": operation,
+        "page_title": f"Modifier {operation.title}",
+        "heading": "Modifier l’opération",
+        "submit_label": "Enregistrer",
+    }
+    return render(request, "ops/operation_form.html", context)
+
+
+@auth_decorators.login_required
+@auth_decorators.user_passes_test(can_manage_ops)
+def operation_activate(request, pk):
+    """Mark an operation as the active one."""
+
+    if request.method == "POST":
+        operation = get_object_or_404(Operation, pk=pk)
+        operation.is_active = True
+        operation.save()
+        messages.success(
+            request,
+            f"L’opération « {operation.title} » est désormais active.",
+        )
+    return redirect("operations_manage")
+
+
+@auth_decorators.login_required
+@auth_decorators.user_passes_test(can_manage_ops)
+def operation_delete(request, pk):
+    """Delete an operation via the management dashboard."""
+
+    if request.method == "POST":
+        operation = get_object_or_404(Operation, pk=pk)
+        title = operation.title
+        operation.delete()
+        messages.success(request, f"L’opération « {title} » a été supprimée.")
+    return redirect("operations_manage")
 
 
 @auth_decorators.login_required

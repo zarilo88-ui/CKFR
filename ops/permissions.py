@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Iterable
 
 MANAGER_GROUPS: tuple[str, ...] = ("Admin", "SuperAdmin")
-MEMBER_GROUPS: tuple[str, ...] = MANAGER_GROUPS + ("Member",)
+MEMBER_GROUPS: tuple[str, ...] = MANAGER_GROUPS + ("Membre",)
 
 
 def _is_authenticated_user(user) -> bool:
@@ -36,3 +36,17 @@ def can_access_member_home(user) -> bool:
     if can_manage_ops(user):
         return True
     return user_in_groups(user, MEMBER_GROUPS)
+
+
+def is_operations_member_only(user) -> bool:
+    """True when the user can view operations but is not a manager."""
+
+    return can_access_member_home(user) and not can_manage_ops(user)
+
+
+__all__ = [
+    "can_manage_ops",
+    "can_access_member_home",
+    "is_operations_member_only",
+    "user_in_groups",
+]

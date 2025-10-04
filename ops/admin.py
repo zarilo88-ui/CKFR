@@ -1,41 +1,5 @@
-from django.contrib import admin
+"""Operations admin module intentionally left empty.
 
-from .models import Operation, Ship, ShipRoleTemplate, RoleSlot
-from .utils import resolve_username_lookup
-
-class ShipRoleTemplateInline(admin.TabularInline):
-    model = ShipRoleTemplate
-    extra = 1
-
-@admin.register(Ship)
-class ShipAdmin(admin.ModelAdmin):
-    list_display = (
-        "name",
-        "manufacturer",
-        "role",
-        "category",
-        "min_crew",
-        "max_crew",
-        "cargo_capacity",
-    )
-    list_filter = ("category", "manufacturer")
-    search_fields = ("name", "manufacturer", "role")
-    inlines = [ShipRoleTemplateInline]
-
-@admin.register(RoleSlot)
-class RoleSlotAdmin(admin.ModelAdmin):
-    list_display = ("ship", "role_name", "index", "user", "status")
-    list_filter = ("ship", "role_name", "status")
-    search_fields = ("ship__name", "role_name", "user__username")
-
-    def get_search_fields(self, request):
-        _, identifier = resolve_username_lookup()
-        return ("ship__name", "role_name", f"user__{identifier}")
-
-
-@admin.register(Operation)
-class OperationAdmin(admin.ModelAdmin):
-    list_display = ("title", "is_active", "highlighted_ship", "updated_at")
-    list_filter = ("is_active",)
-    search_fields = ("title",)
-    ordering = ("-is_active", "-updated_at")
+The operations, ships and role management are handled from the dedicated
+application dashboards so only authentication models remain in the Django
+admin."""
