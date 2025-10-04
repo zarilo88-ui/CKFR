@@ -2,17 +2,47 @@
 {% block title %}Vaisseaux · C.K.F.R{% endblock %}
 {% block body %}
 <section class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-  <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+  <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
     <h1 class="text-2xl sm:text-3xl font-semibold">Vaisseaux</h1>
-    <div class="flex flex-wrap gap-2">
-      <a href="?" class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if not current_cat %}bg-white/10{% endif %}">
-        Tous
-      </a>
-      {% for code, label in categories %}
-      <a href="?cat={{ code }}" class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if current_cat == code %}bg-white/10{% endif %}">
-        {{ label }}
-      </a>
-      {% endfor %}
+    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+      <div class="flex flex-col gap-2">
+        <span class="text-xs uppercase tracking-[0.2em] text-white/40">Catégorie</span>
+        <div class="flex flex-wrap gap-2">
+          <a
+            href="?{% if current_type %}type={{ current_type|urlencode }}{% endif %}"
+            class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if not current_cat %}bg-white/10{% endif %}"
+          >
+            Tous
+          </a>
+          {% for code, label in categories %}
+          <a
+            href="?{% if current_type %}type={{ current_type|urlencode }}&{% endif %}cat={{ code }}"
+            class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if current_cat == code %}bg-white/10{% endif %}"
+          >
+            {{ label }}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="flex flex-col gap-2">
+        <span class="text-xs uppercase tracking-[0.2em] text-white/40">Type</span>
+        <div class="flex flex-wrap gap-2">
+          <a
+            href="?{% if current_cat %}cat={{ current_cat }}{% endif %}"
+            class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if not current_type %}bg-white/10{% endif %}"
+          >
+            Tous
+          </a>
+          {% for ship_type in ship_types %}
+          <a
+            href="?{% if current_cat %}cat={{ current_cat }}&{% endif %}type={{ ship_type|urlencode }}"
+            class="px-3 py-1.5 rounded-full border border-white/15 text-sm {% if current_type == ship_type %}bg-white/10{% endif %}"
+          >
+            {{ ship_type }}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
     </div>
   </div>
 
@@ -38,12 +68,3 @@
         <div class="flex justify-between gap-2">
           <dt class="text-white/50">Cargaison</dt>
           <dd class="text-right text-white/70">{{ ship.cargo_capacity|default:"-" }}</dd>
-        </div>
-      </dl>
-    </a>
-    {% empty %}
-    <p class="text-white/60">Aucun vaisseau pour le moment.</p>
-    {% endfor %}
-  </div>
-</section>
-{% endblock %}
