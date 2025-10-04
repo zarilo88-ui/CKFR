@@ -46,7 +46,7 @@ class RoleSlotForm(forms.ModelForm):
         label="Utilisateur",
         queryset=get_user_model().objects.none(),
         required=False,
-@@ -40,55 +56,164 @@ class RoleSlotForm(forms.ModelForm):
+@@ -40,55 +56,171 @@ class RoleSlotForm(forms.ModelForm):
                 attrs={
                     "class": "w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2",
                 }
@@ -96,6 +96,8 @@ class OperationForm(forms.ModelForm):
 
 
 class HighlightedShipForm(forms.Form):
+    """Form used inside the dynamic highlighted ships formset."""
+
     ship = forms.ModelChoiceField(
         label="Vaisseau",
         queryset=Ship.objects.order_by("name"),
@@ -113,41 +115,8 @@ class HighlightedShipForm(forms.Form):
 
         self.role_metadata: list[dict[str, object]] = []
         for role, label in self._role_choices():
-            field_name = self._role_field_name(role)
-            field = self.fields.get(field_name)
-            if field is None:
-                field = forms.CharField(required=False, widget=forms.HiddenInput())
-                self.fields[field_name] = field
-
-            placeholder = ROLE_PLACEHOLDERS.get(role, "")
-            if self.is_bound:
-                raw_value = self.data.get(self.add_prefix(field_name), "")
-            else:
-                raw_value = (
-                    initial.get(field_name)
-                    or initial.get(f"{role}_names")
-                    or []
-                )
-
-            values = self._normalize_initial_value(raw_value)
-            serialized = json.dumps(values, ensure_ascii=False)
-            field.initial = serialized
-            field.widget.attrs.update(
-                {
-                    "data-role-store": role,
-                    "data-initial": serialized,
-                }
-            )
-
-            self.role_metadata.append(
-                {
-                    "role": role,
-                    "label": label,
-                    "placeholder": placeholder,
-                    "initial": values,
-                    "field": self[field_name],
-                }
-            )
+            metadata = self._build_role_field(role, label, initial)
+            self.role_metadata.append(metadata)
 
         delete_field = self.fields.get("DELETE")
         if delete_field is not None:
@@ -158,6 +127,44 @@ class HighlightedShipForm(forms.Form):
                     "data-delete-field": "true",
                 }
             )
+
+    def _build_role_field(self, role: str, label: str, initial: dict) -> dict[str, object]:
+        """Ensure the hidden role field exists and expose metadata for templates."""
+
+        field_name = self._role_field_name(role)
+        field = self.fields.get(field_name)
+        if field is None:
+            field = forms.CharField(required=False, widget=forms.HiddenInput())
+            self.fields[field_name] = field
+
+        raw_value = self._resolve_raw_role_value(field_name, role, initial)
+        entries = self._normalize_initial_value(raw_value)
+        serialized = json.dumps(entries, ensure_ascii=False)
+
+        placeholder = ROLE_PLACEHOLDERS.get(role, "")
+        field.initial = serialized
+        field.widget.attrs.update(
+            {
+                "data-role-store": role,
+                "data-initial": serialized,
+            }
+        )
+
+        return {
+            "role": role,
+            "label": label,
+            "placeholder": placeholder,
+            "initial": entries,
+            "field": self[field_name],
+        }
+
+    def _resolve_raw_role_value(self, field_name: str, role: str, initial: dict):
+        if self.is_bound:
+            return self.data.get(self.add_prefix(field_name), "")
+        if field_name in initial:
+            return initial[field_name]
+        legacy_key = f"{role}_names"
+        return initial.get(legacy_key, [])
 
     @staticmethod
     def _role_field_name(role: str) -> str:
